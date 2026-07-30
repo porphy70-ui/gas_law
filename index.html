@@ -10,6 +10,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Web Fonts: Nanum Gothic & Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Firebase JS SDK (Compat Mode) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
     <style>
         body {
             font-family: 'Nanum Gothic', 'Inter', sans-serif;
@@ -50,13 +55,20 @@
             </div>
             
             <!-- Mode Selector Switches -->
-            <div class="flex bg-slate-950/80 p-1.5 rounded-2xl border border-white/10 shadow-inner">
-                <button id="btnStudentMode" onclick="switchMode('student')" class="px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300 bg-indigo-600 text-white shadow-md">
-                    <i class="fa-solid fa-graduation-cap"></i> 학생용 실험실
+            <div class="flex items-center gap-3">
+                <button id="btnFirebaseConfig" onclick="openFirebaseModal()" class="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-2 transition-all shadow-inner">
+                    <span id="firebaseStatusDot" class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                    <span id="firebaseStatusText">Firebase 미연동</span>
                 </button>
-                <button id="btnTeacherMode" onclick="switchMode('teacher')" class="px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300 text-slate-400 hover:text-white">
-                    <i class="fa-solid fa-chalkboard-user"></i> 교사용 대시보드
-                </button>
+
+                <div class="flex bg-slate-950/80 p-1.5 rounded-2xl border border-white/10 shadow-inner">
+                    <button id="btnStudentMode" onclick="switchMode('student')" class="px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300 bg-indigo-600 text-white shadow-md">
+                        <i class="fa-solid fa-graduation-cap"></i> 학생용 실험실
+                    </button>
+                    <button id="btnTeacherMode" onclick="switchMode('teacher')" class="px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300 text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-chalkboard-user"></i> 교사용 대시보드
+                    </button>
+                </div>
             </div>
         </div>
     </header>
@@ -464,6 +476,34 @@
         </div>
     </div>
 
+    <!-- Firebase Realtime Database Config Modal -->
+    <div id="firebaseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 mx-4 transform scale-95 transition-all duration-300" id="firebaseModalContainer">
+            <div class="text-center">
+                <span class="text-5xl">🔥</span>
+                <h4 class="text-lg font-black text-slate-800 mt-3">Firebase 실시간 DB 연동</h4>
+                <p class="text-xs text-slate-500 mt-2 leading-relaxed text-left bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    Firebase 콘솔에서 생성한 Realtime Database의 URL을 입력해 주세요.<br>
+                    <span class="text-indigo-600 font-bold">예시:</span> <code class="text-[11px] bg-white px-1 py-0.5 rounded border border-slate-200">https://my-app-default-rtdb.firebaseio.com</code>
+                </p>
+
+                <div class="mt-4 text-left">
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Database URL</label>
+                    <input type="url" id="firebaseUrlInput" placeholder="https://your-project-id.firebaseio.com" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div class="flex gap-2 mt-5">
+                    <button onclick="closeFirebaseModal()" class="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-600 font-bold text-xs rounded-xl transition-all">
+                        취소
+                    </button>
+                    <button onclick="saveFirebaseConfig()" class="w-1/2 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl transition-all shadow-md">
+                        연동 및 저장
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="bg-slate-900 text-slate-400 py-6 px-6 text-center text-xs border-t border-slate-800 mt-8">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
@@ -483,6 +523,127 @@
         let currentPressure = 1.0; 
         const PV_CONSTANT = 120.0; 
         let currentVolume = PV_CONSTANT / currentPressure; 
+
+        let firebaseDb = null;
+        let isFirebaseConnected = false;
+
+        function openFirebaseModal() {
+            const storedUrl = localStorage.getItem('firebase_db_url') || '';
+            document.getElementById('firebaseUrlInput').value = storedUrl;
+            
+            const modal = document.getElementById('firebaseModal');
+            const container = document.getElementById('firebaseModalContainer');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                container.classList.remove('scale-95');
+                container.classList.add('scale-100');
+            }, 50);
+        }
+
+        function closeFirebaseModal() {
+            const container = document.getElementById('firebaseModalContainer');
+            container.classList.remove('scale-100');
+            container.classList.add('scale-95');
+            setTimeout(() => {
+                document.getElementById('firebaseModal').classList.add('hidden');
+            }, 150);
+        }
+
+        function saveFirebaseConfig() {
+            const url = document.getElementById('firebaseUrlInput').value.trim();
+            if (!url) {
+                triggerToastNotification("Firebase Database URL을 입력해주세요.", true);
+                return;
+            }
+
+            localStorage.setItem('firebase_db_url', url);
+            closeFirebaseModal();
+            initFirebase(url);
+        }
+
+        function initFirebase(dbUrl) {
+            try {
+                if (firebase.apps.length === 0) {
+                    firebase.initializeApp({ databaseURL: dbUrl });
+                }
+                firebaseDb = firebase.database();
+                setupFirebaseListeners();
+            } catch (e) {
+                console.error("Firebase 초기화 오류:", e);
+                updateFirebaseStatusUI(false, "연동 실패");
+                triggerToastNotification("Firebase 연동 중 오류가 발생했습니다.", true);
+            }
+        }
+
+        function setupFirebaseListeners() {
+            if (!firebaseDb) return;
+            
+            const studentsRef = firebaseDb.ref('students');
+            
+            studentsRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    const remoteStudents = Object.values(data);
+                    
+                    remoteStudents.forEach(remoteSt => {
+                        const existingIdx = classroomDatabase.findIndex(st => st.id === remoteSt.id);
+                        if (existingIdx !== -1) {
+                            classroomDatabase[existingIdx] = remoteSt;
+                        } else {
+                            classroomDatabase.push(remoteSt);
+                        }
+                    });
+
+                    if (activeStudent.id) {
+                        const currentFromDb = remoteStudents.find(st => st.id === activeStudent.id);
+                        if (currentFromDb) {
+                            activeStudent.logs = currentFromDb.logs || [];
+                            activeStudent.quizAnswers = currentFromDb.quizAnswers || [null, null, null];
+                            refreshJournalTable();
+                            updateQuizIndicator();
+                        }
+                    }
+                }
+                
+                updateFirebaseStatusUI(true, "실시간 DB 연동됨");
+                if (currentMode === 'teacher') {
+                    syncTeacherDashboard();
+                }
+                renderGraph();
+            }, (error) => {
+                console.error("Firebase 수신 에러:", error);
+                updateFirebaseStatusUI(false, "연동/권한 오류");
+                triggerToastNotification("Firebase DB 수신 실패: 규칙 및 URL을 확인하세요.", true);
+            });
+        }
+
+        function updateFirebaseStatusUI(connected, text) {
+            isFirebaseConnected = connected;
+            const dot = document.getElementById('firebaseStatusDot');
+            const txt = document.getElementById('firebaseStatusText');
+            if (dot && txt) {
+                dot.className = connected ? "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" : "w-2.5 h-2.5 rounded-full bg-rose-500";
+                txt.innerText = text;
+            }
+        }
+
+        function pushStudentDataToFirebase() {
+            if (!firebaseDb || !activeStudent.id) return;
+            
+            const cleanId = activeStudent.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+            const payload = {
+                id: activeStudent.id,
+                name: activeStudent.name,
+                logs: activeStudent.logs || [],
+                quizAnswers: activeStudent.quizAnswers || [null, null, null],
+                updatedAt: new Date().toISOString()
+            };
+            
+            firebaseDb.ref('students/' + cleanId).set(payload).catch(err => {
+                console.error("Firebase 저장 에러:", err);
+                triggerToastNotification("Firebase DB 저장 실패!", true);
+            });
+        }
 
         // Sound Synthesis engine
         let audioContext = null;
@@ -1113,206 +1274,44 @@
                     quizAnswers: activeStudent.quizAnswers
                 });
             }
-        }
 
-        // Sync Teacher Dashboard elements
-        function syncTeacherDashboard() {
-            const totalStudents = classroomDatabase.length;
-            document.getElementById('statStudentCount').innerText = `${totalStudents}명`;
-
-            const totalLogs = classroomDatabase.reduce((sum, current) => sum + current.logs.length, 0);
-            const avgLogs = totalStudents > 0 ? (totalLogs / totalStudents).toFixed(1) : '0.0';
-            document.getElementById('statAvgLogs').innerText = `${avgLogs}개`;
-
-            let fullyAttemptedQuizzes = 0;
-            classroomDatabase.forEach(st => {
-                const answersSubmitted = st.quizAnswers.filter(ans => ans !== null).length;
-                if (answersSubmitted === 3) {
-                    fullyAttemptedQuizzes++;
-                }
-            });
-            const quizProgressPct = totalStudents > 0 ? Math.round((fullyAttemptedQuizzes / totalStudents) * 100) : 0;
-            document.getElementById('statQuizSuccess').innerText = `${quizProgressPct}%`;
-
-            const tBody = document.getElementById('teacherTableBody');
-            tBody.innerHTML = classroomDatabase.map(st => {
-                const logsCount = st.logs.length;
-                const lastLog = logsCount > 0 ? st.logs[logsCount - 1] : null;
-                const lastValText = lastLog ? `${lastLog.p.toFixed(1)} atm / ${lastLog.v.toFixed(1)} mL` : '기록 없음';
-                
-                const quiz1Html = getQuizCellBadge(st.quizAnswers[0]);
-                const quiz2Html = getQuizCellBadge(st.quizAnswers[1]);
-                const quiz3Html = getQuizCellBadge(st.quizAnswers[2]);
-
-                const isUser = st.id === activeStudent.id || st.name.endsWith('(나)');
-                const stateText = isUser ? 
-                    '<span class="bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-bold">나(접속중)</span>' : 
-                    '<span class="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">탐구중</span>';
-
-                return `
-                    <tr class="${isUser ? 'bg-pink-50/40' : 'bg-white'} border-b hover:bg-slate-50 transition-colors">
-                        <td class="px-4 py-3 font-mono font-bold">${st.id || '미지정'}</td>
-                        <td class="px-4 py-3 font-bold text-slate-800">${st.name || '무명 학생'}</td>
-                        <td class="px-4 py-3 text-center font-bold">${logsCount}개</td>
-                        <td class="px-4 py-3 text-center font-mono text-slate-500">${lastValText}</td>
-                        <td class="px-4 py-3 text-center">${quiz1Html}</td>
-                        <td class="px-4 py-3 text-center">${quiz2Html}</td>
-                        <td class="px-4 py-3 text-center">${quiz3Html}</td>
-                        <td class="px-4 py-3 text-center">${stateText}</td>
-                    </tr>
-                `;
-            }).join('');
-
-            renderClassGraph();
-        }
-
-        function getQuizCellBadge(val) {
-            if (val === null) return '<span class="text-slate-300">-</span>';
-            return val ? 
-                '<span class="text-emerald-500 text-xs font-black bg-emerald-50 px-2 py-1 rounded-md">O</span>' : 
-                '<span class="text-rose-500 text-xs font-black bg-rose-50 px-2 py-1 rounded-md">X</span>';
-        }
-
-        // CSV Export function for student data tracking
-        window.downloadCSV = function() {
-            // Define CSV Header
-            const headers = ['학번', '이름', '기록 수량', '최근 실험 수치', '퀴즈 1', '퀴즈 2', '퀴즈 3'];
-            
-            // Map table values
-            const rows = classroomDatabase.map(st => {
-                const logsCount = st.logs.length;
-                const lastLog = logsCount > 0 ? st.logs[logsCount - 1] : null;
-                const lastValText = lastLog ? `${lastLog.p.toFixed(1)} atm / ${lastLog.v.toFixed(1)} mL` : '기록 없음';
-                
-                const q1 = st.quizAnswers[0] === null ? '미응시' : (st.quizAnswers[0] ? 'O' : 'X');
-                const q2 = st.quizAnswers[1] === null ? '미응시' : (st.quizAnswers[1] ? 'O' : 'X');
-                const q3 = st.quizAnswers[2] === null ? '미응시' : (st.quizAnswers[2] ? 'O' : 'X');
-
-                // Enclose fields in double quotes to prevent separation issues with commas or special characters
-                return [
-                    `"${st.id || ''}"`,
-                    `"${(st.name || '').replace('(나)', '')}"`,
-                    `"${logsCount}"`,
-                    `"${lastValText}"`,
-                    `"${q1}"`,
-                    `"${q2}"`,
-                    `"${q3}"`
-                ].join(',');
-            });
-
-            // Prepend UTF-8 BOM (\uFEFF) to make Excel recognize Korean characters instantly
-            const csvContent = "\uFEFF" + [headers.join(','), ...rows].join('\n');
-            
-            // Create a Blob and trigger virtual download element
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            
-            const today = new Date().toISOString().slice(0, 10);
-            link.setAttribute("href", url);
-            link.setAttribute("download", `보일의법칙_실습기록_${today}.csv`);
-            link.style.visibility = 'hidden';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            playTone(650, 'sine', 0.12, 0.05);
-            triggerToastNotification("전체 학생의 탐구 실습 정보가 CSV로 다운로드되었습니다.");
-        };
-
-        // Mock interaction to simulate other students sending live data in real-time
-        window.injectMockStudentAction = function() {
-            const nonUserClassmates = classroomDatabase.filter(st => st.id !== activeStudent.id && !st.name.endsWith('(나)'));
-            if (nonUserClassmates.length === 0) return;
-
-            const randomStudent = nonUserClassmates[Math.floor(Math.random() * nonUserClassmates.length)];
-            const randomP = parseFloat((1.0 + Math.random() * 5.0).toFixed(1));
-            const calculatedV = PV_CONSTANT / randomP;
-
-            randomStudent.logs.push({ p: randomP, v: calculatedV });
-            
-            const unattemptedIdx = randomStudent.quizAnswers.findIndex(ans => ans === null);
-            if (unattemptedIdx !== -1) {
-                randomStudent.quizAnswers[unattemptedIdx] = Math.random() > 0.35; 
+            if (isFirebaseConnected && activeStudent.id) {
+                pushStudentDataToFirebase();
             }
+        }
 
-            playTone(700, 'sine', 0.05, 0.01);
-            syncTeacherDashboard();
-            triggerToastNotification(`동급생 ${randomStudent.name} 학생의 실험 데이터가 실시간으로 수집되었습니다.`);
-        };
-
-
-        const pSlider = document.getElementById('pressureSlider');
-        const sliderValText = document.getElementById('sliderValueText');
-        const boardP = document.getElementById('boardP');
-        const boardV = document.getElementById('boardV');
-        const boardPV = document.getElementById('boardPV');
-        const overP = document.getElementById('overlayPressure');
-        const overV = document.getElementById('overlayVolume');
-        const btnDec = document.getElementById('btnDecreaseP');
-        const btnInc = document.getElementById('btnIncreaseP');
-        const btnRecord = document.getElementById('btnRecordData');
-        const btnClear = document.getElementById('btnClearJournal');
-        const journalTableBody = document.getElementById('journalTableBody');
-        const toast = document.getElementById('dynamicToast');
-        const toastMsg = document.getElementById('toastMsg');
-
+        // Synchronize pressure, volume, and UI readouts
         function syncState() {
             currentVolume = PV_CONSTANT / currentPressure;
-
-            sliderValText.innerText = `${currentPressure.toFixed(1)} atm`;
-            boardP.innerHTML = `${currentPressure.toFixed(1)} <span class="text-xs font-normal text-indigo-500">atm</span>`;
-            boardV.innerHTML = `${currentVolume.toFixed(1)} <span class="text-xs font-normal text-emerald-500">mL</span>`;
-            boardPV.innerHTML = `${(currentPressure * currentVolume).toFixed(1)} <span class="text-[10px] font-normal text-amber-500">atm·mL</span>`;
             
-            overP.innerText = currentPressure.toFixed(1);
-            overV.innerText = currentVolume.toFixed(1);
+            const boardP = document.getElementById('boardP');
+            const boardV = document.getElementById('boardV');
+            const boardPV = document.getElementById('boardPV');
+            const overlayVolume = document.getElementById('overlayVolume');
+            const overlayPressure = document.getElementById('overlayPressure');
+            const sliderValueText = document.getElementById('sliderValueText');
+            const pressureSlider = document.getElementById('pressureSlider');
 
-            pSlider.value = currentPressure;
-        }
+            if (boardP) boardP.innerHTML = `${currentPressure.toFixed(1)} <span class="text-xs font-normal text-indigo-500">atm</span>`;
+            if (boardV) boardV.innerHTML = `${currentVolume.toFixed(1)} <span class="text-xs font-normal text-emerald-500">mL</span>`;
+            if (boardPV) boardPV.innerHTML = `${(currentPressure * currentVolume).toFixed(1)} <span class="text-[10px] font-normal text-amber-500">atm·mL</span>`;
+            if (overlayVolume) overlayVolume.innerText = currentVolume.toFixed(1);
+            if (overlayPressure) overlayPressure.innerText = currentPressure.toFixed(1);
+            if (sliderValueText) sliderValueText.innerText = `${currentPressure.toFixed(1)} atm`;
+            if (pressureSlider) pressureSlider.value = currentPressure;
 
-        function triggerToastNotification(text, isError = false) {
-            toastMsg.innerText = text;
-            if (isError) {
-                toast.className = "mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2 shadow-sm transition-all";
-            } else {
-                toast.className = "mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2 shadow-sm transition-all";
+            if (currentMode === 'teacher') {
+                syncTeacherDashboard();
             }
-            toast.classList.remove('hidden');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 3500);
         }
 
-        function handleRecordData() {
-            const key = currentPressure.toFixed(1);
-            const isDuplicate = activeStudent.logs.some(log => log.p.toFixed(1) === key);
-
-            if (isDuplicate) {
-                playTone(200, 'sawtooth', 0.12, 0.05);
-                triggerToastNotification(`이미 압력 ${key} atm 조건에서 수집된 데이터 일지가 존재합니다.`, true);
-                return;
-            }
-
-            const newLog = {
-                p: currentPressure,
-                v: currentVolume
-            };
-
-            activeStudent.logs.push(newLog);
-            upsertActiveStudentInDB();
-
-            playTone(550, 'sine', 0.14, 0.05);
-            triggerToastNotification(`정상 기록 완료: ${currentPressure.toFixed(1)} atm, ${currentVolume.toFixed(1)} mL 측정값을 내 실험 일지에 저장했습니다.`);
-            
-            refreshJournalTable();
-            renderGraph();
-        }
-
+        // Student Journal Table updates
         function refreshJournalTable() {
-            if (activeStudent.logs.length === 0) {
-                journalTableBody.innerHTML = `
+            const tbody = document.getElementById('journalTableBody');
+            if (!tbody) return;
+
+            if (!activeStudent.logs || activeStudent.logs.length === 0) {
+                tbody.innerHTML = `
                     <tr id="emptyRow" class="bg-white border-b">
                         <td colspan="5" class="px-5 py-8 text-center text-slate-400">
                             아직 수집된 실험 데이터가 없습니다.<br>
@@ -1323,105 +1322,189 @@
                 return;
             }
 
-            journalTableBody.innerHTML = activeStudent.logs.map((log, index) => `
-                <tr class="bg-white border-b hover:bg-slate-50 transition-colors">
-                    <td class="px-5 py-3 text-center font-bold text-slate-600">${index + 1}</td>
-                    <td class="px-5 py-3 font-mono font-semibold">${log.p.toFixed(1)} atm</td>
-                    <td class="px-5 py-3 font-mono font-semibold">${log.v.toFixed(1)} mL</td>
-                    <td class="px-5 py-3 font-mono font-bold text-indigo-600">${(log.p * log.v).toFixed(1)}</td>
-                    <td class="px-5 py-3 text-center">
-                        <button onclick="removeJournalEntry(${index})" class="text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-2 py-1 rounded-lg transition-colors font-bold">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = activeStudent.logs.map((log, index) => {
+                const pv = (log.p * log.v).toFixed(1);
+                return `
+                    <tr class="bg-white border-b hover:bg-slate-50 transition-all font-mono">
+                        <td class="px-5 py-3 text-center font-bold text-slate-400">${index + 1}</td>
+                        <td class="px-5 py-3 text-indigo-600 font-bold">${log.p.toFixed(1)}</td>
+                        <td class="px-5 py-3 text-emerald-600 font-bold">${log.v.toFixed(1)}</td>
+                        <td class="px-5 py-3 text-amber-600 font-bold">${pv}</td>
+                        <td class="px-5 py-3 text-center">
+                            <button onclick="removeJournalLog(${index})" class="text-rose-400 hover:text-rose-600 font-sans p-1">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        window.removeJournalEntry = function(index) {
-            activeStudent.logs.splice(index, 1);
-            upsertActiveStudentInDB();
-            playTone(300, 'triangle', 0.08, 0.03);
-            refreshJournalTable();
-            renderGraph();
+        window.removeJournalLog = function(index) {
+            if (activeStudent.logs && activeStudent.logs[index] !== undefined) {
+                activeStudent.logs.splice(index, 1);
+                upsertActiveStudentInDB();
+                refreshJournalTable();
+                playTone(350, 'sawtooth', 0.08, 0.03);
+            }
         };
 
-        pSlider.addEventListener('input', (e) => {
-            currentPressure = parseFloat(e.target.value);
-            syncState();
-            renderGraph();
-        });
+        function triggerToastNotification(msg, isError = false) {
+            const toast = document.getElementById('dynamicToast');
+            const toastMsg = document.getElementById('toastMsg');
+            if (!toast || !toastMsg) return;
 
-        btnInc.addEventListener('click', () => {
-            if (currentPressure < 6.0) {
-                currentPressure = Math.min(6.0, parseFloat((currentPressure + 0.5).toFixed(1)));
-                playTone(480, 'sine', 0.06, 0.04);
-                syncState();
-                renderGraph();
+            toastMsg.innerText = msg;
+            if (isError) {
+                toast.className = "mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2 shadow-sm transition-all";
             } else {
-                playTone(180, 'triangle', 0.12, 0.05);
+                toast.className = "mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2 shadow-sm transition-all animate-bounce";
             }
-        });
 
-        btnDec.addEventListener('click', () => {
-            if (currentPressure > 1.0) {
-                currentPressure = Math.max(1.0, parseFloat((currentPressure - 0.5).toFixed(1)));
-                playTone(420, 'sine', 0.06, 0.04);
-                syncState();
-                renderGraph();
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3500);
+        }
+
+        function syncTeacherDashboard() {
+            const count = classroomDatabase.length;
+            let totalLogsCount = 0;
+            let completedQuizCount = 0;
+
+            classroomDatabase.forEach(st => {
+                totalLogsCount += (st.logs ? st.logs.length : 0);
+                if (st.quizAnswers && st.quizAnswers.every(ans => ans !== null && ans !== undefined)) {
+                    completedQuizCount++;
+                }
+            });
+
+            const avgLogs = count > 0 ? (totalLogsCount / count).toFixed(1) : "0.0";
+            const quizSuccessRate = count > 0 ? Math.round((completedQuizCount / count) * 100) : 0;
+
+            const elCount = document.getElementById('statStudentCount');
+            const elLogs = document.getElementById('statAvgLogs');
+            const elQuiz = document.getElementById('statQuizSuccess');
+
+            if (elCount) elCount.innerText = `${count}명`;
+            if (elLogs) elLogs.innerText = `${avgLogs}개`;
+            if (elQuiz) elQuiz.innerText = `${quizSuccessRate}%`;
+
+            const tbody = document.getElementById('teacherTableBody');
+            if (tbody) {
+                tbody.innerHTML = classroomDatabase.map(st => {
+                    const logCount = st.logs ? st.logs.length : 0;
+                    const lastLog = logCount > 0 ? st.logs[logCount - 1] : null;
+                    const lastValStr = lastLog ? `${lastLog.p.toFixed(1)}atm, ${lastLog.v.toFixed(1)}mL` : '-';
+                    
+                    const q1Badge = st.quizAnswers && st.quizAnswers[0] !== null ? '<span class="text-indigo-600">제출완료</span>' : '<span class="text-slate-300">-</span>';
+                    const q2Badge = st.quizAnswers && st.quizAnswers[1] !== null ? '<span class="text-indigo-600">제출완료</span>' : '<span class="text-slate-300">-</span>';
+                    const q3Badge = st.quizAnswers && st.quizAnswers[2] !== null ? '<span class="text-indigo-600">제출완료</span>' : '<span class="text-slate-300">-</span>';
+
+                    const statusTag = logCount >= 3 
+                        ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">활동 완료</span>'
+                        : '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold">탐구 진행중</span>';
+
+                    return `
+                        <tr class="bg-white border-b hover:bg-slate-50 transition-all">
+                            <td class="px-4 py-3 font-mono font-bold text-slate-700">${st.id}</td>
+                            <td class="px-4 py-3 font-bold text-slate-800">${st.name}</td>
+                            <td class="px-4 py-3 text-center font-bold text-indigo-600">${logCount}개</td>
+                            <td class="px-4 py-3 text-center font-mono text-xs text-slate-600">${lastValStr}</td>
+                            <td class="px-4 py-3 text-center text-xs font-bold">${q1Badge}</td>
+                            <td class="px-4 py-3 text-center text-xs font-bold">${q2Badge}</td>
+                            <td class="px-4 py-3 text-center text-xs font-bold">${q3Badge}</td>
+                            <td class="px-4 py-3 text-center">${statusTag}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            renderClassGraph();
+        }
+
+        window.downloadCSV = function() {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += "학번,이름,기록순서,압력(atm),부피(mL),PV상수(atm*mL)\n";
+
+            classroomDatabase.forEach(st => {
+                if (st.logs && st.logs.length > 0) {
+                    st.logs.forEach((log, idx) => {
+                        const pv = (log.p * log.v).toFixed(1);
+                        csvContent += `${st.id},${st.name},${idx + 1},${log.p},${log.v},${pv}\n`;
+                    });
+                } else {
+                    csvContent += `${st.id},${st.name},-, -,-,-\n`;
+                }
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `보일의법칙_학급탐구결과_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        window.injectMockStudentAction = function() {
+            const mockNames = ['윤서아', '이준우', '최지유', '한도윤', '서아인'];
+            const randomName = mockNames[Math.floor(Math.random() * mockNames.length)];
+            const randomId = `2020${Math.floor(Math.random() * 90) + 10}`;
+            
+            const pVals = [1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0];
+            const pChoice = pVals[Math.floor(Math.random() * pVals.length)];
+            const vChoice = parseFloat((PV_CONSTANT / pChoice).toFixed(1));
+
+            const existing = classroomDatabase.find(st => st.id === randomId);
+            if (existing) {
+                existing.logs.push({ p: pChoice, v: vChoice });
             } else {
-                playTone(180, 'triangle', 0.12, 0.05);
+                classroomDatabase.push({
+                    id: randomId,
+                    name: randomName,
+                    logs: [{ p: pChoice, v: vChoice }],
+                    quizAnswers: [true, null, null]
+                });
             }
-        });
 
-        btnRecord.addEventListener('click', handleRecordData);
+            syncTeacherDashboard();
+            playTone(580, 'sine', 0.1, 0.05);
+            triggerToastNotification(`가상 모둠 데이터 유입: [${randomName}] 학생이 (${pChoice} atm, ${vChoice} mL)를 기록했습니다.`);
+        };
 
-        btnClear.addEventListener('click', () => {
-            if (activeStudent.logs.length > 0) {
-                activeStudent.logs = [];
-                upsertActiveStudentInDB();
-                playTone(150, 'sawtooth', 0.2, 0.04);
-                refreshJournalTable();
-                renderGraph();
-                triggerToastNotification("데이터 일지가 정상적으로 초기화되었습니다.");
-            }
-        });
-
-        // Classroom Assessment Engine
+        let activeQuizIndex = 0;
         const quizList = [
             {
-                q: "Q1. 온도가 일정할 때, 기체의 압력을 3배 증가시키면 내부의 가상 부피(V)는 원래의 몇 배가 될까요?",
-                answers: ["① 3배로 늘어난다", "② 1/3배로 압축된다", "③ 변함없이 일정하다", "④ 완전히 소멸하여 0이 된다"],
-                correct: 2,
-                desc: "보일의 법칙에 의해 기체 압력과 부피는 반비례 관계입니다. 압력이 3배 늘어나면 부피는 1/3배로 압축됩니다."
+                q: "Q1. 일정한 온도에서 일정량의 기체의 압력(P)을 2배로 증가시킬 때 부피(V)의 변화는?",
+                answers: ["① 2배로 증가한다", "② 1/2배로 감소한다", "③ 변하지 않는다", "④ 4배로 증가한다"],
+                correct: 2
             },
             {
-                q: "Q2. 실험 데이터 기록장에 적힌 '압력(P) × 부피(V)'의 값은 압력을 조정할 때 어떻게 변하는가요?",
-                answers: ["① 압력이 높아지면 값도 늘어난다", "② 부피가 작아지면 값이 줄어든다", "③ 압력이 어떻게 변하든 일정한 상수를 유지한다", "④ 가늠할 수 없이 매번 랜덤이다"],
-                correct: 3,
-                desc: "PV = k (일정) 공식에 의해 기체 압력과 부피의 곱은 항상 온도가 일정한 상태에서 일정한 수치(상수)를 유지합니다."
+                q: "Q2. 보일의 법칙에 따르면 온도와 기체의 양이 일정할 때, 압력(P)과 부피(V)의 곱(P × V) 값의 특성은?",
+                answers: ["① 압력이 클수록 커진다", "② 부피가 작을수록 작아진다", "③ 항상 일정한 상수값을 가진다", "④ 기체의 종류에 따라 불규칙하다"],
+                correct: 3
             },
             {
-                q: "Q3. 피스톤을 눌러 부피를 강하게 감소시킬 때, 기체 분자의 미시적인 운동에 대한 올바른 설명은?",
-                answers: ["① 분자 알갱이의 질량이 줄어든다", "② 분자의 운동 공간이 좁아져 벽 충돌 빈도가 올라간다", "③ 분자 하나의 지름이 작아진다", "④ 분자의 온도 속도가 완벽히 정지한다"],
-                correct: 2,
-                desc: "압력이 올라가는 본질적 원인은 분자 알갱이 개당 충돌 면적이 밀집되면서 내부 실린더 벽을 연속 타격하는 빈도가 높아지기 때문입니다."
+                q: "Q3. 피스톤 내부 기체를 압축할 때(부피 감소), 단위 면적당 용기 벽면과 충돌하는 기체 분자 수의 변화는?",
+                answers: ["① 충돌 횟수가 증가하여 압력이 높아진다", "② 충돌 횟수가 감소하여 압력이 낮아진다", "③ 충돌 횟수에는 변화가 없다", "④ 분자의 이동 속도가 감소한다"],
+                correct: 1
             }
         ];
 
-        let activeQuizIndex = 0;
-
         function updateQuizIndicator() {
-            for (let i = 1; i <= 3; i++) {
-                const dot = document.getElementById(`qDot${i}`);
-                const state = activeStudent.quizAnswers[i - 1];
-                if (state === null) {
-                    dot.className = "w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 text-[10px]";
+            [1, 2, 3].forEach((num, idx) => {
+                const dot = document.getElementById(`qDot${num}`);
+                if (!dot) return;
+                const status = activeStudent.quizAnswers[idx];
+                if (status === true || status === false) {
+                    dot.className = "w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-extrabold text-xs";
+                } else if (idx === activeQuizIndex) {
+                    dot.className = "w-6 h-6 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center font-extrabold text-xs border border-amber-300 animate-pulse";
                 } else {
-                    // 학생 화면에서는 정답/오답(초록/빨강) 대신 제출 완료를 뜻하는 중립적인 인디고 색상으로 통일합니다.
-                    dot.className = "w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center border border-indigo-700 text-white font-bold text-[10px]";
+                    dot.className = "w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center border border-slate-200 text-xs";
                 }
-            }
+            });
         }
 
         function loadQuiz(index) {
@@ -1463,7 +1546,6 @@
             upsertActiveStudentInDB();
             updateQuizIndicator();
 
-            // 학생들에게 정정 여부를 직접 노출하지 않고 제출 완료 메시지만 보여주어 오개념 극복과 건전한 참여를 유도합니다.
             playTone(600, 'sine', 0.15, 0.04);
             resultPanel.className = "mt-4 p-4 rounded-xl font-bold text-center bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs flex flex-col gap-2";
             resultPanel.innerHTML = `
@@ -1500,22 +1582,71 @@
         }
 
         window.onload = function() {
-            // Setup blank active profile on startup to lock controls until input is entered
             document.getElementById('studentIdInput').value = activeStudent.id;
             document.getElementById('studentNameInput').value = activeStudent.name;
             
-            // Add Enter key listener for password input
             document.getElementById('teacherPasswordInput').addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     submitTeacherPassword();
                 }
             });
 
+            // Bind Control UI event listeners
+            document.getElementById('pressureSlider').addEventListener('input', function(e) {
+                currentPressure = parseFloat(e.target.value);
+                syncState();
+            });
+
+            document.getElementById('btnIncreaseP').addEventListener('click', function() {
+                if (currentPressure < 6.0) {
+                    currentPressure = Math.min(6.0, parseFloat((currentPressure + 0.5).toFixed(1)));
+                    syncState();
+                    playTone(520, 'sine', 0.08, 0.04);
+                }
+            });
+
+            document.getElementById('btnDecreaseP').addEventListener('click', function() {
+                if (currentPressure > 1.0) {
+                    currentPressure = Math.max(1.0, parseFloat((currentPressure - 0.5).toFixed(1)));
+                    syncState();
+                    playTone(380, 'sine', 0.08, 0.04);
+                }
+            });
+
+            document.getElementById('btnRecordData').addEventListener('click', function() {
+                const pVal = parseFloat(currentPressure.toFixed(1));
+                const vVal = parseFloat(currentVolume.toFixed(1));
+                
+                const alreadyExists = activeStudent.logs.some(log => log.p === pVal && log.v === vVal);
+                if (!alreadyExists) {
+                    activeStudent.logs.push({ p: pVal, v: vVal });
+                    upsertActiveStudentInDB();
+                    refreshJournalTable();
+                    triggerToastNotification("실험 노트에 데이터가 성공적으로 추가되었습니다.");
+                    playTone(784, 'triangle', 0.12, 0.05);
+                } else {
+                    triggerToastNotification("이미 해당 압력/부피 데이터가 기록에 존재합니다.", true);
+                }
+            });
+
+            document.getElementById('btnClearJournal').addEventListener('click', function() {
+                activeStudent.logs = [];
+                upsertActiveStudentInDB();
+                refreshJournalTable();
+                triggerToastNotification("실험 노트의 모든 기록이 초기화되었습니다.");
+                playTone(300, 'sawtooth', 0.1, 0.04);
+            });
+
+            const savedUrl = localStorage.getItem('firebase_db_url');
+            if (savedUrl) {
+                initFirebase(savedUrl);
+            }
+
             upsertActiveStudentInDB();
             syncState();
             refreshJournalTable();
             loadQuiz(0);
-            checkLockStatus(); // Start with locked simulator panels
+            checkLockStatus();
             
             animationFrameRunner();
         };
