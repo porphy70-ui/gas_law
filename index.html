@@ -39,6 +39,12 @@
         .view-panel {
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
+        
+        /* Markdown style for AI Output */
+        .markdown-output p { margin-bottom: 0.5rem; }
+        .markdown-output strong { color: #4f46e5; }
+        .markdown-output ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.5rem; }
+        .markdown-output li { margin-bottom: 0.25rem; }
     </style>
 </head>
 <body class="min-h-screen text-slate-800 flex flex-col justify-between">
@@ -386,7 +392,7 @@
                                     <i class="fa-solid fa-file-csv text-base"></i> CSV 내보내기
                                 </button>
                                 <button onclick="injectMockStudentAction()" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-100 transition-all flex items-center gap-1">
-                                    <i class="fa-solid fa-bolt animate-bounce"></i> 모둠 실험 데이터 유입 (가상 시뮬레이션)
+                                    <i class="fa-solid fa-bolt animate-bounce"></i> 모둠 실험 데이터 유입
                                 </button>
                             </div>
                         </div>
@@ -394,7 +400,7 @@
                         <!-- Main Grid Table -->
                         <div class="overflow-x-auto max-h-[280px] overflow-y-auto rounded-2xl border border-slate-200">
                             <table class="w-full text-xs text-left text-slate-600">
-                                <thead class="text-slate-700 uppercase bg-slate-100 sticky top-0 font-bold">
+                                <thead class="text-slate-700 uppercase bg-slate-100 sticky top-0 font-bold z-10">
                                     <tr>
                                         <th scope="col" class="px-4 py-3">학번</th>
                                         <th scope="col" class="px-4 py-3">이름</th>
@@ -404,6 +410,8 @@
                                         <th scope="col" class="px-4 py-3 text-center">퀴즈 2</th>
                                         <th scope="col" class="px-4 py-3 text-center">퀴즈 3</th>
                                         <th scope="col" class="px-4 py-3 text-center">수업 상태</th>
+                                        <!-- NEW: AI Feedback Column -->
+                                        <th scope="col" class="px-4 py-3 text-center text-indigo-700 bg-indigo-50/50">AI 분석</th>
                                     </tr>
                                 </thead>
                                 <tbody id="teacherTableBody">
@@ -424,7 +432,7 @@
                         <h4 class="font-extrabold text-indigo-950 text-sm">교실 지도시 관찰 포인트</h4>
                         <p class="text-xs text-slate-500 mt-1 leading-relaxed">
                             학생들이 직접 수집한 개별 데이터들이 모여 학급 대시보드의 <strong>통합 산점도</strong> 위에 밀착된 $PV = 120$ 이론 반비례 곡선을 완성해 나가는 장관을 확인할 수 있습니다.<br>
-                            진행이 더디거나 퀴즈 오답이 잦은 모둠을 식별하여 적극적으로 피드백을 안내해 주십시오.
+                            진행이 더디거나 퀴즈 오답이 잦은 모둠을 식별하여 우측의 <span class="text-indigo-600 font-bold">AI 피드백</span>을 활용해 적극적으로 피드백을 안내해 주십시오.
                         </p>
                     </div>
                 </div>
@@ -504,6 +512,41 @@
         </div>
     </div>
 
+    <!-- NEW: AI Feedback Modal -->
+    <div id="aiFeedbackModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[110] flex items-center justify-center hidden">
+        <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-indigo-100 mx-4 flex flex-col transform scale-95 transition-all duration-300 max-h-[85vh]" id="aiModalContainer">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-indigo-50 to-white rounded-t-3xl">
+                <h4 class="text-lg font-black text-indigo-900 flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i>
+                    <span id="aiModalStudentName">학생</span> 맞춤형 AI 피드백
+                </h4>
+                <button onclick="closeAIFeedbackModal()" class="text-slate-400 hover:text-rose-500 transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-6 overflow-y-auto flex-grow bg-slate-50">
+                <div id="aiFeedbackContent" class="text-sm text-slate-700 leading-relaxed markdown-output">
+                    <!-- Loading state -->
+                    <div class="flex flex-col items-center justify-center py-8 opacity-70">
+                        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-indigo-500 mb-3"></i>
+                        <p class="font-bold text-indigo-800">학생의 실험 데이터와 퀴즈 결과를 분석 중입니다...</p>
+                        <p class="text-xs text-slate-500 mt-1">잠시만 기다려주세요.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-slate-100 bg-white rounded-b-3xl">
+                <button onclick="closeAIFeedbackModal()" class="w-full py-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-sm rounded-xl transition-all">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="bg-slate-900 text-slate-400 py-6 px-6 text-center text-xs border-t border-slate-800 mt-8">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
@@ -518,6 +561,10 @@
 
     <!-- JavaScript Engine -->
     <script>
+        // --- API KEY CONFIGURATION ---
+        // TODO: Enter your Gemini API key here
+        const GEMINI_API_KEY = "AQ.Ab8RN6JnQEi_M66flY1526JPfiqy4gWdOzYN_h_sA301_DUPoA"; 
+
         // Global variables for active student simulation
         let currentMode = 'student'; 
         let currentPressure = 1.0; 
@@ -527,6 +574,7 @@
         let firebaseDb = null;
         let isFirebaseConnected = false;
 
+        // Firebase Functions
         function openFirebaseModal() {
             const storedUrl = localStorage.getItem('firebase_db_url') || '';
             document.getElementById('firebaseUrlInput').value = storedUrl;
@@ -690,6 +738,7 @@
             { id: '20205', name: '박서준', logs: [{p:1.0, v:120.0}], quizAnswers: [false, null, null] },
         ];
 
+        // Canvas Setup for Physics
         const cylCanvas = document.getElementById('cylinderCanvas');
         const cylCtx = cylCanvas.getContext('2d');
         const cylinderX = 60;
@@ -1064,7 +1113,7 @@
                 classGraphCtx.fillStyle = '#94a3b8';
                 classGraphCtx.font = '9px Inter';
                 classGraphCtx.textAlign = 'right';
-                classGraphCtx.fillText(`${v} mL`, classOffset.left - 6, cy + 3.5);
+                classGraphCtx.fillText(`${v} mL`, cOffset.left - 6, cy + 3.5);
             }
 
             // Ideal Curve Line
@@ -1084,6 +1133,7 @@
 
             // Overlay ALL students' gathered logs (Classroom Database)
             classroomDatabase.forEach(student => {
+                if(!student.logs) return;
                 student.logs.forEach(log => {
                     const lX = cOffset.left + (log.p / 6.0) * cgWidth;
                     const lY = cOffset.top + cgHeight - (log.v / 120) * cgHeight;
@@ -1104,7 +1154,6 @@
                 });
             });
         }
-
 
         // Switch between Student/Teacher View
         window.switchMode = function(mode) {
@@ -1397,13 +1446,18 @@
                     const lastLog = logCount > 0 ? st.logs[logCount - 1] : null;
                     const lastValStr = lastLog ? `${lastLog.p.toFixed(1)}atm, ${lastLog.v.toFixed(1)}mL` : '-';
                     
-                    const q1Badge = st.quizAnswers && st.quizAnswers[0] !== null ? '<span class="text-indigo-600">제출완료</span>' : '<span class="text-slate-300">-</span>';
-                    const q2Badge = st.quizAnswers && st.quizAnswers[1] !== null ? '<span class="text-indigo-600">제출완료</span>' : '<span class="text-slate-300">-</span>';
-                    const q3Badge = st.quizAnswers && st.quizAnswers[2] !== null ? '<span class="text-indigo-600">제출완료</span>' : '<span class="text-slate-300">-</span>';
+                    const q1Badge = st.quizAnswers && st.quizAnswers[0] !== null ? (st.quizAnswers[0] ? '<span class="text-indigo-600">O</span>' : '<span class="text-rose-500">X</span>') : '<span class="text-slate-300">-</span>';
+                    const q2Badge = st.quizAnswers && st.quizAnswers[1] !== null ? (st.quizAnswers[1] ? '<span class="text-indigo-600">O</span>' : '<span class="text-rose-500">X</span>') : '<span class="text-slate-300">-</span>';
+                    const q3Badge = st.quizAnswers && st.quizAnswers[2] !== null ? (st.quizAnswers[2] ? '<span class="text-indigo-600">O</span>' : '<span class="text-rose-500">X</span>') : '<span class="text-slate-300">-</span>';
 
                     const statusTag = logCount >= 3 
                         ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">활동 완료</span>'
                         : '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold">탐구 진행중</span>';
+                        
+                    // AI Feedback Button
+                    const aiBtn = `<button onclick="generateAIFeedback('${st.id}')" class="px-2.5 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 active:scale-95 text-white text-[10px] font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-1 mx-auto w-full max-w-[80px]">
+                                        <i class="fa-solid fa-wand-magic-sparkles"></i> AI 피드백
+                                   </button>`;
 
                     return `
                         <tr class="bg-white border-b hover:bg-slate-50 transition-all">
@@ -1415,6 +1469,7 @@
                             <td class="px-4 py-3 text-center text-xs font-bold">${q2Badge}</td>
                             <td class="px-4 py-3 text-center text-xs font-bold">${q3Badge}</td>
                             <td class="px-4 py-3 text-center">${statusTag}</td>
+                            <td class="px-4 py-3 text-center bg-indigo-50/20">${aiBtn}</td>
                         </tr>
                     `;
                 }).join('');
@@ -1422,6 +1477,137 @@
 
             renderClassGraph();
         }
+
+        // --- AI Feedback Logic ---
+        
+        window.openAIFeedbackModal = function(studentName) {
+            document.getElementById('aiModalStudentName').innerText = studentName;
+            
+            // Set loading state
+            document.getElementById('aiFeedbackContent').innerHTML = `
+                <div class="flex flex-col items-center justify-center py-8 opacity-70">
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl text-indigo-500 mb-3"></i>
+                    <p class="font-bold text-indigo-800">학생의 실험 데이터와 퀴즈 결과를 분석 중입니다...</p>
+                    <p class="text-xs text-slate-500 mt-1">잠시만 기다려주세요.</p>
+                </div>
+            `;
+            
+            const modal = document.getElementById('aiFeedbackModal');
+            const container = document.getElementById('aiModalContainer');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                container.classList.remove('scale-95');
+                container.classList.add('scale-100');
+            }, 50);
+        };
+
+        window.closeAIFeedbackModal = function() {
+            const container = document.getElementById('aiModalContainer');
+            container.classList.remove('scale-100');
+            container.classList.add('scale-95');
+            setTimeout(() => {
+                document.getElementById('aiFeedbackModal').classList.add('hidden');
+            }, 150);
+        };
+
+        window.generateAIFeedback = async function(studentId) {
+            const student = classroomDatabase.find(s => s.id === studentId);
+            if (!student) return;
+
+            openAIFeedbackModal(student.name);
+
+            if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === "") {
+                document.getElementById('aiFeedbackContent').innerHTML = `
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
+                        <i class="fa-solid fa-triangle-exclamation text-3xl text-rose-500 mb-2"></i>
+                        <h5 class="font-bold text-rose-800">API 키 누락</h5>
+                        <p class="text-xs text-rose-600 mt-1 leading-relaxed">
+                            소스 코드의 JavaScript 영역 최상단에 있는<br>
+                            <code class="bg-rose-100 px-1 py-0.5 rounded text-rose-900 font-mono">GEMINI_API_KEY</code> 변수에 유효한 API 키를 입력해주세요.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Prepare Data for Prompt
+            const logsData = student.logs && student.logs.length > 0 
+                ? student.logs.map((log, idx) => `[측정${idx+1}] 압력: ${log.p}atm, 부피: ${log.v}mL (P*V = ${(log.p*log.v).toFixed(1)})`).join("\n") 
+                : "수집된 실험 데이터가 없습니다.";
+            
+            const q1State = student.quizAnswers[0] === null ? "미제출" : (student.quizAnswers[0] ? "정답" : "오답");
+            const q2State = student.quizAnswers[1] === null ? "미제출" : (student.quizAnswers[1] ? "정답" : "오답");
+            const q3State = student.quizAnswers[2] === null ? "미제출" : (student.quizAnswers[2] ? "정답" : "오답");
+            
+            const quizData = `퀴즈 1 (부피변화): ${q1State}\n퀴즈 2 (상수이해): ${q2State}\n퀴즈 3 (충돌빈도): ${q3State}`;
+
+            const prompt = `
+                당신은 친절하고 전문적인 고등학교 화학 교사입니다. 
+                다음은 '보일의 법칙' 가상 실험을 진행한 '${student.name}' 학생의 실시간 활동 데이터입니다.
+                
+                [실험 측정 데이터 (PV상수는 약 120)]
+                ${logsData}
+                
+                [개념 확인 퀴즈 결과]
+                ${quizData}
+                
+                이 데이터를 바탕으로 학생에게 전달할 개인화된 피드백을 작성해주세요.
+                
+                작성 지침:
+                1. 학생의 데이터 수집 정도와 P*V 상수의 일관성을 확인하여 칭찬해주세요. (데이터가 없다면 실험 진행을 독려)
+                2. 퀴즈 결과를 바탕으로 잘 이해한 부분과 보완이 필요한 개념(압력과 부피의 반비례, 분자 충돌 횟수 등)을 부드럽게 짚어주세요.
+                3. 문체는 학생에게 직접 말하듯 친절하고 격려하는 어조(~해요, ~습니다)를 사용하세요.
+                4. 분량은 3~4문단 정도로 핵심만 짧고 간결하게 작성하세요.
+                5. 마크다운 형식(Bold, List 등)을 사용하여 가독성을 높여주세요.
+            `;
+
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Request Failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+                
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    let feedbackText = candidate.content.parts[0].text;
+                    
+                    // Simple Markdown to HTML converter (for basic tags)
+                    feedbackText = feedbackText
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
+                        .replace(/\n/g, '<br>'); // Newlines
+                    
+                    document.getElementById('aiFeedbackContent').innerHTML = feedbackText;
+                } else {
+                    throw new Error("Unexpected API response structure.");
+                }
+
+            } catch (error) {
+                console.error("AI Feedback Generation Error:", error);
+                document.getElementById('aiFeedbackContent').innerHTML = `
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
+                        <i class="fa-solid fa-circle-xmark text-3xl text-rose-500 mb-2"></i>
+                        <h5 class="font-bold text-rose-800">피드백 생성 실패</h5>
+                        <p class="text-xs text-rose-600 mt-1">
+                            오류가 발생했습니다. API 키가 유효한지 확인하거나 잠시 후 다시 시도해주세요.<br>
+                            <span class="opacity-70">(${error.message})</span>
+                        </p>
+                    </div>
+                `;
+            }
+        };
+
 
         window.downloadCSV = function() {
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
@@ -1458,6 +1644,7 @@
 
             const existing = classroomDatabase.find(st => st.id === randomId);
             if (existing) {
+                if(!existing.logs) existing.logs = [];
                 existing.logs.push({ p: pChoice, v: vChoice });
             } else {
                 classroomDatabase.push({
