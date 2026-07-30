@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고등학교 화학 I - 보일의 법칙 & 실시간 대시보드</title>
+    <!-- Tailwind CSS for Modern Premium Design System -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for beautiful educational icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Web Fonts: Nanum Gothic & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nanum Gothic', 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .custom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #4f46e5;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+            border: 3px solid #ffffff;
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        .custom-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: #4338ca;
+        }
+        .view-panel {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <!-- Navigation Header -->
+    <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 text-white shadow-lg py-4 px-6 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-white/10 rounded-2xl border border-white/20 text-2xl">🧪</div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tight">보일의 법칙 통합 가상 실험실</h1>
+                    <p class="text-[11px] text-indigo-200 mt-0.5">Boyle's Law Interactive Lab & Real-time Teacher's Dashboard</p>
+                </div>
+            </div>
+            
+            <!-- Mode Selector Switches -->
+            <div class="flex bg-slate-950/80 p-1.5 rounded-2xl border border-white/10 shadow-inner">
+                <button id="btnStudentMode" onclick="switchMode('student')" class="px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300 bg-indigo-600 text-white shadow-md">
+                    <i class="fa-solid fa-graduation-cap"></i> 학생용 실험실
+                </button>
+                <button id="btnTeacherMode" onclick="switchMode('teacher')" class="px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-chalkboard-user"></i> 교사용 대시보드
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Panel Area -->
+    <main class="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 w-full flex-grow">
+
+        <!-- STUDENT VIEW PANEL -->
+        <div id="viewStudent" class="view-panel grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+            
+            <!-- Left Column: Simulator Canvas & Slider Controls (5 columns) -->
+            <section class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- Student Register Box -->
+                <div class="bg-white p-5 rounded-3xl shadow-md border border-slate-100 flex flex-col gap-3">
+                    <h3 class="text-xs font-extrabold text-slate-400 tracking-wider uppercase flex items-center gap-2">
+                        <i class="fa-solid fa-id-card text-indigo-500"></i> 실시간 탐구 활동 등록
+                    </h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">학번 (예: 20101)</label>
+                            <input type="text" id="studentIdInput" oninput="syncStudentProfile()" placeholder="학번 입력" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">이름</label>
+                            <input type="text" id="studentNameInput" oninput="syncStudentProfile()" placeholder="이름 입력" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Piston Simulator Container -->
+                <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 flex flex-col items-center">
+                    <div class="w-full flex justify-between items-center mb-4">
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-flask text-indigo-600"></i> 기체 압축기 실린더
+                        </h2>
+                        <span class="text-[11px] text-amber-500 font-extrabold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 flex items-center gap-1">
+                            <span class="w-2 h-2 bg-amber-400 rounded-full animate-ping"></span> 온도 일정 (298 K)
+                        </span>
+                    </div>
+
+                    <!-- 3D style Cylinder Canvas -->
+                    <div class="relative w-full flex justify-center bg-slate-950 rounded-2xl p-4 border border-slate-800 shadow-inner overflow-hidden">
+                        <canvas id="cylinderCanvas" width="320" height="380" class="max-w-full h-auto rounded-lg"></canvas>
+                        
+                        <!-- Digital overlay indicators -->
+                        <div class="absolute top-4 right-4 flex flex-col gap-1.5 items-end">
+                            <div class="bg-black/70 backdrop-blur-md text-emerald-400 px-3 py-1 rounded-lg text-xs font-mono border border-emerald-500/20">
+                                Volume: <span id="overlayVolume" class="font-bold">120.0</span> mL
+                            </div>
+                            <div class="bg-black/70 backdrop-blur-md text-rose-400 px-3 py-1 rounded-lg text-xs font-mono border border-rose-500/20">
+                                Pressure: <span id="overlayPressure" class="font-bold">1.0</span> atm
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Slider control & Buttons (Now Locked until profile registered) -->
+                    <div class="w-full mt-6 relative">
+                        <!-- Profile Check Lock Overlay for Controls -->
+                        <div id="controlsLockOverlay" class="absolute inset-0 bg-white/90 backdrop-blur-xs z-30 flex flex-col items-center justify-center text-center p-6 rounded-2xl border-2 border-dashed border-slate-300">
+                            <span class="text-4xl animate-bounce">🔒</span>
+                            <h4 class="text-sm font-extrabold text-slate-800 mt-2">피스톤 조작 장치 잠김</h4>
+                            <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                                위 가상 탐구 활동 등록 박스에<br>
+                                <span class="text-indigo-600 font-bold">학번과 이름</span>을 모두 기입하면 활성화됩니다.
+                            </p>
+                        </div>
+
+                        <!-- Real Controls inside -->
+                        <div>
+                            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <div class="flex justify-between items-center mb-3">
+                                    <span class="text-xs font-extrabold text-slate-600 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-weight-hanging text-indigo-600"></i> 피스톤 가압 장치 (압력 조절)
+                                    </span>
+                                    <span id="sliderValueText" class="text-xl font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-100">1.0 atm</span>
+                                </div>
+                                
+                                <input type="range" id="pressureSlider" min="1.0" max="6.0" step="0.1" value="1.0" 
+                                       class="w-full h-3.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 custom-slider" disabled>
+                                
+                                <div class="flex justify-between text-[10px] text-slate-400 mt-2 px-1 font-bold">
+                                    <span>1.0 atm (최대 팽창)</span>
+                                    <span>3.5 atm</span>
+                                    <span>6.0 atm (최대 압축)</span>
+                                </div>
+                            </div>
+
+                            <!-- Large easy-to-use buttons for students -->
+                            <div class="w-full mt-4 flex flex-col gap-3">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button id="btnDecreaseP" class="py-3.5 px-3 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-black text-sm rounded-2xl shadow-md active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5" disabled>
+                                        <span class="text-[10px] opacity-90 font-normal">추 걷어내기</span>
+                                        <span><i class="fa-solid fa-minus mr-1"></i> 0.5 atm 감소</span>
+                                    </button>
+                                    <button id="btnIncreaseP" class="py-3.5 px-3 bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white font-black text-sm rounded-2xl shadow-md active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5" disabled>
+                                        <span class="text-[10px] opacity-90 font-normal">추 얹기 (가압)</span>
+                                        <span><i class="fa-solid fa-plus mr-1"></i> 0.5 atm 증가</span>
+                                    </button>
+                                </div>
+
+                                <button id="btnRecordData" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 active:scale-[0.98] text-white font-extrabold text-base rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2" disabled>
+                                    <i class="fa-solid fa-pen-fancy"></i> 📝 측정 데이터 실험장에 기록하기
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- Right Column: Graphs, Logger, Explanations (7 columns) -->
+            <section class="lg:col-span-7 flex flex-col gap-6">
+                
+                <!-- Metrics Panel Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    
+                    <!-- Board values -->
+                    <div class="md:col-span-5 bg-white p-5 rounded-3xl shadow-md border border-slate-100 flex flex-col justify-between gap-4">
+                        <h3 class="text-xs font-extrabold text-slate-400 tracking-wider uppercase flex items-center gap-2"><i class="fa-solid fa-circle-nodes text-indigo-500"></i> 가상 정밀 센서</h3>
+                        
+                        <div class="flex flex-col gap-3">
+                            <div class="bg-indigo-50/70 p-3.5 rounded-2xl border border-indigo-100/50 flex justify-between items-center">
+                                <div>
+                                    <p class="text-[10px] text-indigo-500 font-bold">압력 (P)</p>
+                                    <p class="text-xl font-black text-indigo-800" id="boardP">1.0 <span class="text-xs font-normal text-indigo-500">atm</span></p>
+                                </div>
+                                <span class="text-2xl">🎚️</span>
+                            </div>
+                            
+                            <div class="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-100/50 flex justify-between items-center">
+                                <div>
+                                    <p class="text-[10px] text-emerald-600 font-bold">기체 부피 (V)</p>
+                                    <p class="text-xl font-black text-emerald-800" id="boardV">120.0 <span class="text-xs font-normal text-emerald-500">mL</span></p>
+                                </div>
+                                <span class="text-2xl">🥤</span>
+                            </div>
+
+                            <div class="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-100/50 flex justify-between items-center">
+                                <div>
+                                    <p class="text-[10px] text-amber-600 font-bold">보일 상수 (P × V)</p>
+                                    <p class="text-xl font-black text-amber-800" id="boardPV">120.0 <span class="text-[10px] font-normal text-amber-500">atm·mL</span></p>
+                                </div>
+                                <span class="text-2xl">🎯</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Individual Interactive Chart -->
+                    <div class="md:col-span-7 bg-white p-5 rounded-3xl shadow-md border border-slate-100 flex flex-col">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-xs font-extrabold text-slate-400 tracking-wider uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-chart-line text-indigo-600"></i> 나의 실시간 P-V 그래프
+                            </h3>
+                            <span class="text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full font-bold">반비례곡선</span>
+                        </div>
+                        <div class="flex-grow flex items-center justify-center bg-slate-50 rounded-2xl p-2 border border-slate-200 shadow-inner">
+                            <canvas id="graphCanvas" width="320" height="200" class="w-full h-auto"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Lab Notebook Table -->
+                <div class="bg-white p-6 rounded-3xl shadow-md border border-slate-100 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-book-open text-emerald-600"></i> 나의 실험 기록 노트 (저장 데이터)
+                            </h2>
+                            <button id="btnClearJournal" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-xl transition-all flex items-center gap-1.5 font-bold">
+                                <i class="fa-solid fa-rotate-left"></i> 기록 초기화
+                            </button>
+                        </div>
+
+                        <div class="overflow-x-auto max-h-[160px] overflow-y-auto rounded-2xl border border-slate-200">
+                            <table class="w-full text-xs text-left text-slate-600">
+                                <thead class="text-slate-700 bg-slate-100 sticky top-0 font-bold">
+                                    <tr>
+                                        <th scope="col" class="px-5 py-3 text-center">번호</th>
+                                        <th scope="col" class="px-5 py-3">압력 (P, atm)</th>
+                                        <th scope="col" class="px-5 py-3">부피 (V, mL)</th>
+                                        <th scope="col" class="px-5 py-3">압력 × 부피 (P × V)</th>
+                                        <th scope="col" class="px-5 py-3 text-center">삭제</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="journalTableBody">
+                                    <tr id="emptyRow" class="bg-white border-b">
+                                        <td colspan="5" class="px-5 py-8 text-center text-slate-400">
+                                            아직 수집된 실험 데이터가 없습니다.<br>
+                                            왼쪽 <span class="text-indigo-600 font-bold">"측정 데이터 기록"</span> 버튼으로 수치를 쌓아 올려 보세요!
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Toast Notification Layer -->
+                    <div id="dynamicToast" class="hidden mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2 shadow-sm transition-all animate-bounce">
+                        <i class="fa-solid fa-circle-check text-emerald-500 text-base"></i>
+                        <span id="toastMsg">실험실 노트에 새 데이터가 정상 기록되었습니다.</span>
+                    </div>
+                </div>
+
+                <!-- Concept Quizzes with Lock Overlay -->
+                <div class="bg-white p-6 rounded-3xl shadow-md border border-slate-100 relative">
+                    <!-- Profile Check Lock Overlay for Quizzes -->
+                    <div id="quizLockOverlay" class="absolute inset-0 bg-white/95 backdrop-blur-xs z-30 flex flex-col items-center justify-center text-center p-6 rounded-3xl border-2 border-dashed border-slate-300">
+                        <span class="text-4xl animate-bounce">🔒</span>
+                        <h4 class="text-sm font-extrabold text-slate-800 mt-2">화학 개념 퀴즈 잠김</h4>
+                        <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                            학번과 이름을 등록하신 후에<br>
+                            개념 검증용 퀴즈에 응시할 수 있습니다.
+                        </p>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-square-poll-horizontal text-amber-500 animate-pulse"></i> 보일의 법칙 개념 확인 퀴즈
+                        </h3>
+                        <div id="quizIndicator" class="flex gap-1.5 text-xs font-bold text-slate-400">
+                            <span id="qDot1" class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">1</span>
+                            <span id="qDot2" class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">2</span>
+                            <span id="qDot3" class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">3</span>
+                        </div>
+                    </div>
+                    
+                    <div id="quizContainer" class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                        <p class="font-bold text-sm text-slate-800 mb-3" id="quizQuestion">Loading...</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="quizAnswers">
+                            <!-- Populated dynamically -->
+                        </div>
+                        <div id="quizResultPanel" class="hidden mt-4 p-4 rounded-xl font-bold text-center text-xs"></div>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+
+
+        <!-- TEACHER DASHBOARD VIEW PANEL -->
+        <div id="viewTeacher" class="view-panel hidden flex flex-col gap-8">
+            
+            <!-- Summary Stats Board -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                <div class="bg-white p-5 rounded-3xl shadow-md border border-slate-100 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">실시간 연동 인원</p>
+                        <h4 class="text-3xl font-black text-indigo-600 mt-1" id="statStudentCount">0명</h4>
+                        <p class="text-xs text-slate-400 mt-1">접속 및 실험 진행 현황</p>
+                    </div>
+                    <div class="text-4xl">👨‍💻</div>
+                </div>
+
+                <div class="bg-white p-5 rounded-3xl shadow-md border border-slate-100 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">평균 실험 측정 수</p>
+                        <h4 class="text-3xl font-black text-emerald-600 mt-1" id="statAvgLogs">0.0개</h4>
+                        <p class="text-xs text-slate-400 mt-1">학생당 평균 데이터 기록 건수</p>
+                    </div>
+                    <div class="text-4xl">📊</div>
+                </div>
+
+                <div class="bg-white p-5 rounded-3xl shadow-md border border-slate-100 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">퀴즈 종합 완수율</p>
+                        <h4 class="text-3xl font-black text-amber-500 mt-1" id="statQuizSuccess">0%</h4>
+                        <p class="text-xs text-slate-400 mt-1">확인 퀴즈 3문항 해결 완료율</p>
+                    </div>
+                    <div class="text-4xl">🏆</div>
+                </div>
+
+                <div class="bg-white p-5 rounded-3xl shadow-md border border-slate-100 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">기체 온도 상태</p>
+                        <h4 class="text-3xl font-black text-rose-500 mt-1">298.15 K</h4>
+                        <p class="text-xs text-emerald-500 mt-1">▲ 가상 센서 오차율 0.0%</p>
+                    </div>
+                    <div class="text-4xl">🌡️</div>
+                </div>
+            </div>
+
+            <!-- Dashboard Analytics Panel -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <!-- Class Data Aggregate Graph (5 columns) -->
+                <div class="lg:col-span-5 bg-white p-6 rounded-3xl shadow-md border border-slate-100 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-extrabold text-slate-500 tracking-wider uppercase mb-1 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-line text-indigo-600"></i> 학급 통합 가상 실험 산점도
+                        </h3>
+                        <p class="text-xs text-slate-400 mb-4">현재 학급 모든 학생들의 수집 데이터가 동시 실시간 중첩되는 반비례 분포도</p>
+                    </div>
+                    
+                    <div class="flex-grow flex items-center justify-center bg-slate-50 rounded-2xl p-2 border border-slate-200">
+                        <canvas id="classGraphCanvas" width="320" height="240" class="w-full h-auto"></canvas>
+                    </div>
+                </div>
+
+                <!-- Student Management & Real-time Tracking Table (7 columns) -->
+                <div class="lg:col-span-7 bg-white p-6 rounded-3xl shadow-md border border-slate-100 flex flex-col justify-between">
+                    <div>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                            <div>
+                                <h3 class="text-sm font-extrabold text-slate-500 tracking-wider uppercase flex items-center gap-1.5">
+                                    <i class="fa-solid fa-table-list text-emerald-600"></i> 실시간 학생 활동 진도 현황표
+                                </h3>
+                                <p class="text-xs text-slate-400">교실 내 각 학생들의 학번, 데이터 수량, 퀴즈 제출 결과를 실시간 갱신합니다.</p>
+                            </div>
+                            <!-- Simulation actions -->
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="downloadCSV()" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200 transition-all flex items-center gap-1.5 shadow-xs">
+                                    <i class="fa-solid fa-file-csv text-base"></i> CSV 내보내기
+                                </button>
+                                <button onclick="injectMockStudentAction()" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-100 transition-all flex items-center gap-1">
+                                    <i class="fa-solid fa-bolt animate-bounce"></i> 모둠 실험 데이터 유입 (가상 시뮬레이션)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Main Grid Table -->
+                        <div class="overflow-x-auto max-h-[280px] overflow-y-auto rounded-2xl border border-slate-200">
+                            <table class="w-full text-xs text-left text-slate-600">
+                                <thead class="text-slate-700 uppercase bg-slate-100 sticky top-0 font-bold">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3">학번</th>
+                                        <th scope="col" class="px-4 py-3">이름</th>
+                                        <th scope="col" class="px-4 py-3 text-center">기록 수량</th>
+                                        <th scope="col" class="px-4 py-3 text-center">최근 실험 수치</th>
+                                        <th scope="col" class="px-4 py-3 text-center">퀴즈 1</th>
+                                        <th scope="col" class="px-4 py-3 text-center">퀴즈 2</th>
+                                        <th scope="col" class="px-4 py-3 text-center">퀴즈 3</th>
+                                        <th scope="col" class="px-4 py-3 text-center">수업 상태</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="teacherTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Conceptual guidance and classroom tasks -->
+            <div class="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="flex items-center gap-4">
+                    <span class="text-4xl">👨‍🏫</span>
+                    <div>
+                        <h4 class="font-extrabold text-indigo-950 text-sm">교실 지도시 관찰 포인트</h4>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                            학생들이 직접 수집한 개별 데이터들이 모여 학급 대시보드의 <strong>통합 산점도</strong> 위에 밀착된 $PV = 120$ 이론 반비례 곡선을 완성해 나가는 장관을 확인할 수 있습니다.<br>
+                            진행이 더디거나 퀴즈 오답이 잦은 모둠을 식별하여 적극적으로 피드백을 안내해 주십시오.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="triggerClassroomAlert('💡 미션 전송 완료: [학급 전체에 압력을 3.0 atm 이상 올려서 충돌 상태를 확인하기] 안내 메시지를 전송했습니다.')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all">
+                        <i class="fa-solid fa-bullhorn mr-1"></i> 전체 학생 미션 알림 전송
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Custom Modal Popup System (Instead of window.alert) -->
+    <div id="customModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 mx-4 transform scale-95 transition-all duration-300" id="modalContainer">
+            <div class="text-center">
+                <span id="modalIcon" class="text-5xl">📢</span>
+                <h4 id="modalTitle" class="text-lg font-black text-slate-800 mt-4">안내 메시지</h4>
+                <p id="modalContent" class="text-xs text-slate-500 mt-2 leading-relaxed">안내 내용입니다.</p>
+                <button onclick="closeCustomModal()" class="mt-5 w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-sm rounded-xl transition-all shadow-md">
+                    확인
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teacher Password Authentication Modal -->
+    <div id="passwordModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 mx-4 transform scale-95 transition-all duration-300" id="pwdModalContainer">
+            <div class="text-center">
+                <span class="text-5xl">🔐</span>
+                <h4 class="text-lg font-black text-slate-800 mt-4">교사용 인증</h4>
+                <p class="text-xs text-slate-500 mt-2 leading-relaxed">교사용 대시보드 진입을 위해 비밀번호를 입력해주세요.</p>
+                
+                <input type="password" id="teacherPasswordInput" placeholder="비밀번호 입력" class="w-full mt-4 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-center font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                <p id="passwordError" class="text-[11px] text-rose-500 mt-2 font-bold hidden">❌ 비밀번호가 올바르지 않습니다.</p>
+
+                <div class="flex gap-2 mt-5">
+                    <button onclick="closePasswordModal()" class="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-600 font-bold text-xs rounded-xl transition-all">
+                        취소
+                    </button>
+                    <button onclick="submitTeacherPassword()" class="w-1/2 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl transition-all shadow-md">
+                        확인
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-6 px-6 text-center text-xs border-t border-slate-800 mt-8">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <p>© 2026 고등학교 가상 화학 실험실 - 보일의 법칙 교육용 웹 시뮬레이터 (교사용 관리 대시보드 탑재)</p>
+            <div class="flex gap-4">
+                <span class="hover:text-white transition-all cursor-pointer">화학 I 대단원 I. 물질의 세 가지 상태와 용액</span>
+                <span class="text-slate-600">|</span>
+                <span class="hover:text-white transition-all">온도 일정 조건</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Engine -->
+    <script>
+        // Global variables for active student simulation
+        let currentMode = 'student'; 
+        let currentPressure = 1.0; 
+        const PV_CONSTANT = 120.0; 
+        let currentVolume = PV_CONSTANT / currentPressure; 
+
+        // Sound Synthesis engine
+        let audioContext = null;
+        function playTone(frequency, type = 'sine', duration = 0.08, volume = 0.04) {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                const osc = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                osc.type = type;
+                osc.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + duration);
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                osc.start();
+                osc.stop(audioContext.currentTime + duration);
+            } catch (e) {
+                // Soft fail on policy block
+            }
+        }
+
+        // Active Student Profile (Now initialized empty to enforce registration lock)
+        let activeStudent = {
+            id: '',
+            name: '',
+            logs: [],
+            quizAnswers: [null, null, null] // null = unattempted, false = incorrect, true = correct
+        };
+
+        // Complete Mock Classroom Database for Real-Time Feel in Dashboard
+        let classroomDatabase = [
+            { id: '20201', name: '강민준', logs: [{p:1.0, v:120.0},{p:2.0, v:60.0},{p:3.0, v:40.0},{p:5.0, v:24.0}], quizAnswers: [true, true, true] },
+            { id: '20202', name: '구하율', logs: [{p:1.0, v:120.0},{p:2.5, v:48.0},{p:4.0, v:30.0}], quizAnswers: [true, false, true] },
+            { id: '20203', name: '김동현', logs: [{p:1.5, v:80.0},{p:3.0, v:40.0},{p:6.0, v:20.0}], quizAnswers: [true, true, false] },
+            { id: '20204', name: '김민지', logs: [{p:1.0, v:120.0},{p:2.0, v:60.0},{p:4.0, v:30.0},{p:6.0, v:20.0}], quizAnswers: [true, true, true] },
+            { id: '20205', name: '박서준', logs: [{p:1.0, v:120.0}], quizAnswers: [false, null, null] },
+        ];
+
+        const cylCanvas = document.getElementById('cylinderCanvas');
+        const cylCtx = cylCanvas.getContext('2d');
+        const cylinderX = 60;
+        const cylinderY = 50;
+        const cylinderWidth = 200;
+        const cylinderHeight = 310;
+
+        class GasMolecule {
+            constructor() {
+                this.radius = 4.5;
+                this.initCoordinates();
+                const baseSpeed = 2.4;
+                const angle = Math.random() * Math.PI * 2;
+                this.vx = Math.cos(angle) * baseSpeed;
+                this.vy = Math.sin(angle) * baseSpeed;
+                this.color = '#38bdf8'; // Sky blue neon look
+            }
+
+            initCoordinates() {
+                this.x = cylinderX + this.radius + Math.random() * (cylinderWidth - this.radius * 2);
+                const currentPistonY = cylinderY + (cylinderHeight - (currentVolume * 2.3));
+                this.y = currentPistonY + this.radius + Math.random() * ((cylinderY + cylinderHeight - this.radius) - currentPistonY);
+            }
+
+            update(pistonY, speedScaleFactor) {
+                // Elastic collision trajectory with multiplier
+                this.x += this.vx * speedScaleFactor;
+                this.y += this.vy * speedScaleFactor;
+
+                // Wall bounds bounce
+                if (this.x - this.radius <= cylinderX) {
+                    this.x = cylinderX + this.radius;
+                    this.vx = Math.abs(this.vx);
+                    playTone(280, 'sine', 0.015, 0.005);
+                } else if (this.x + this.radius >= cylinderX + cylinderWidth) {
+                    this.x = cylinderX + cylinderWidth - this.radius;
+                    this.vx = -Math.abs(this.vx);
+                    playTone(280, 'sine', 0.015, 0.005);
+                }
+
+                // Floor boundary bounce
+                const floorY = cylinderY + cylinderHeight;
+                if (this.y + this.radius >= floorY) {
+                    this.y = floorY - this.radius;
+                    this.vy = -Math.abs(this.vy);
+                    playTone(280, 'sine', 0.015, 0.005);
+                }
+
+                // Piston boundary bounce
+                const actualCeilingY = pistonY + 16;
+                if (this.y - this.radius <= actualCeilingY) {
+                    this.y = actualCeilingY + this.radius;
+                    this.vy = Math.abs(this.vy);
+                    playTone(330, 'triangle', 0.02, 0.005);
+                }
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.shadowColor = 'rgba(56, 189, 248, 0.6)';
+                ctx.shadowBlur = 6;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.closePath();
+            }
+        }
+
+        // Generate Molecules array
+        const molecules = [];
+        const moleculeCount = 40;
+        for (let i = 0; i < moleculeCount; i++) {
+            molecules.push(new GasMolecule());
+        }
+
+        function renderCylinder() {
+            // Dark viewport
+            cylCtx.fillStyle = '#0b1329';
+            cylCtx.fillRect(0, 0, cylCanvas.width, cylCanvas.height);
+
+            const volumeHeightPixels = currentVolume * 2.3;
+            const pistonY = cylinderY + (cylinderHeight - volumeHeightPixels);
+
+            // Glowing Gas Chamber Area
+            const gradientChamber = cylCtx.createLinearGradient(cylinderX, 0, cylinderX + cylinderWidth, 0);
+            gradientChamber.addColorStop(0, 'rgba(14, 165, 233, 0.03)');
+            gradientChamber.addColorStop(0.5, 'rgba(14, 165, 233, 0.16)');
+            gradientChamber.addColorStop(1, 'rgba(14, 165, 233, 0.03)');
+            cylCtx.fillStyle = gradientChamber;
+            cylCtx.fillRect(cylinderX, pistonY + 16, cylinderWidth, cylinderHeight - (pistonY - cylinderY) - 16);
+
+            // Molecules Collision resolution loop
+            for (let i = 0; i < molecules.length; i++) {
+                for (let j = i + 1; j < molecules.length; j++) {
+                    const m1 = molecules[i];
+                    const m2 = molecules[j];
+                    const dx = m2.x - m1.x;
+                    const dy = m2.y - m1.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const minDist = m1.radius + m2.radius;
+
+                    if (dist < minDist && dist > 0) {
+                        const overlap = minDist - dist;
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+
+                        m1.x -= nx * overlap * 0.5;
+                        m1.y -= ny * overlap * 0.5;
+                        m2.x += nx * overlap * 0.5;
+                        m2.y += ny * overlap * 0.5;
+
+                        const kx = m1.vx - m2.vx;
+                        const ky = m1.vy - m2.vy;
+                        const p = nx * kx + ny * ky;
+
+                        if (p > 0) {
+                            m1.vx -= p * nx;
+                            m1.vy -= p * ny;
+                            m2.vx += p * nx;
+                            m2.vy += p * ny;
+                        }
+                    }
+                }
+            }
+
+            // Animate molecules
+            const speedScaleFactor = Math.sqrt(currentPressure);
+            molecules.forEach(m => {
+                m.update(pistonY, speedScaleFactor);
+                m.draw(cylCtx);
+            });
+
+            // Outer Steel Cylinder
+            cylCtx.strokeStyle = '#334155';
+            cylCtx.lineWidth = 6;
+            cylCtx.lineCap = 'square';
+            cylCtx.beginPath();
+            cylCtx.moveTo(cylinderX, cylinderY - 15);
+            cylCtx.lineTo(cylinderX, cylinderY + cylinderHeight);
+            cylCtx.lineTo(cylinderX + cylinderWidth, cylinderY + cylinderHeight);
+            cylCtx.lineTo(cylinderX + cylinderWidth, cylinderY - 15);
+            cylCtx.stroke();
+
+            // Graduation marks
+            cylCtx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            cylCtx.font = '10px Inter';
+            cylCtx.textAlign = 'right';
+            for (let val = 20; val <= 120; val += 20) {
+                const stepY = cylinderY + (cylinderHeight - (val * 2.3));
+                cylCtx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+                cylCtx.lineWidth = 1;
+                cylCtx.beginPath();
+                cylCtx.moveTo(cylinderX, stepY);
+                cylCtx.lineTo(cylinderX + 12, stepY);
+                cylCtx.stroke();
+                cylCtx.fillText(`${val} mL`, cylinderX - 8, stepY + 3.5);
+            }
+
+            // Metallic Piston Plate
+            const gradPistonPlate = cylCtx.createLinearGradient(cylinderX, 0, cylinderX + cylinderWidth, 0);
+            gradPistonPlate.addColorStop(0, '#94a3b8');
+            gradPistonPlate.addColorStop(0.35, '#cbd5e1');
+            gradPistonPlate.addColorStop(0.65, '#cbd5e1');
+            gradPistonPlate.addColorStop(1, '#64748b');
+            cylCtx.fillStyle = gradPistonPlate;
+            cylCtx.fillRect(cylinderX + 2, pistonY, cylinderWidth - 4, 18);
+            
+            // Seals
+            cylCtx.fillStyle = '#1e293b';
+            cylCtx.fillRect(cylinderX + 1, pistonY + 3, 5, 12);
+            cylCtx.fillRect(cylinderX + cylinderWidth - 6, pistonY + 3, 5, 12);
+
+            // central Rod
+            cylCtx.fillStyle = '#64748b';
+            cylCtx.fillRect(cylinderX + (cylinderWidth / 2) - 8, pistonY - 45, 16, 45);
+            cylCtx.fillStyle = '#e2e8f0';
+            cylCtx.fillRect(cylinderX + (cylinderWidth / 2) - 3, pistonY - 45, 6, 45);
+
+            // support plate
+            cylCtx.fillStyle = '#475569';
+            cylCtx.fillRect(cylinderX + (cylinderWidth / 2) - 45, pistonY - 50, 90, 8);
+
+            // Draw stacked pressure weight blocks
+            const blockWidth = 38;
+            const blockHeight = 15;
+            const originY = pistonY - 50;
+            const wholeWeights = Math.floor(currentPressure);
+            const remainderWeight = currentPressure - wholeWeights;
+
+            cylCtx.font = 'bold 9px Nanum Gothic';
+            cylCtx.textAlign = 'center';
+
+            for (let i = 0; i < wholeWeights; i++) {
+                const sideIdx = i % 2;
+                const stackLv = Math.floor(i / 2);
+                const blockX = cylinderX + (cylinderWidth / 2) - 42 + (sideIdx * 46);
+                const blockY = originY - blockHeight - (stackLv * (blockHeight + 3));
+
+                cylCtx.fillStyle = '#fbbf24';
+                cylCtx.strokeStyle = '#d97706';
+                cylCtx.lineWidth = 1.5;
+                cylCtx.beginPath();
+                cylCtx.roundRect(blockX, blockY, blockWidth, blockHeight, 3);
+                cylCtx.fill();
+                cylCtx.stroke();
+                
+                cylCtx.fillStyle = '#78350f';
+                cylCtx.fillText('1 atm', blockX + blockWidth / 2, blockY + 11);
+            }
+
+            if (remainderWeight > 0.05) {
+                const sideIdx = wholeWeights % 2;
+                const stackLv = Math.floor(wholeWeights / 2);
+                const blockX = cylinderX + (cylinderWidth / 2) - 42 + (sideIdx * 46);
+                const blockY = originY - blockHeight - (stackLv * (blockHeight + 3));
+                
+                const customH = blockHeight * remainderWeight;
+                const topGap = blockHeight - customH;
+
+                cylCtx.fillStyle = '#fde047';
+                cylCtx.strokeStyle = '#d97706';
+                cylCtx.lineWidth = 1;
+                cylCtx.beginPath();
+                cylCtx.roundRect(blockX, blockY + topGap, blockWidth, customH, 2);
+                cylCtx.fill();
+                cylCtx.stroke();
+
+                cylCtx.fillStyle = '#78350f';
+                cylCtx.fillText(`+${remainderWeight.toFixed(1)}`, blockX + blockWidth / 2, blockY + topGap + customH - 1.5);
+            }
+        }
+
+
+        // Individual Interactive Chart
+        const graphCanvas = document.getElementById('graphCanvas');
+        const graphCtx = graphCanvas.getContext('2d');
+        const graphOffset = { top: 12, right: 15, bottom: 32, left: 40 };
+        const innerW = graphCanvas.width - graphOffset.left - graphOffset.right;
+        const innerH = graphCanvas.height - graphOffset.top - graphOffset.bottom;
+
+        function renderGraph() {
+            graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+            graphCtx.strokeStyle = '#e2e8f0';
+            graphCtx.lineWidth = 1;
+
+            // X-Grid (0.0 ~ 6.0 atm)
+            for (let p = 0.0; p <= 6.0; p += 1.0) {
+                const stepX = graphOffset.left + (p / 6.0) * innerW;
+                graphCtx.beginPath();
+                graphCtx.moveTo(stepX, graphOffset.top);
+                graphCtx.lineTo(stepX, graphOffset.top + innerH);
+                graphCtx.stroke();
+
+                graphCtx.fillStyle = '#64748b';
+                graphCtx.font = '9px Inter';
+                graphCtx.textAlign = 'center';
+                graphCtx.fillText(`${p.toFixed(1)}`, stepX, graphOffset.top + innerH + 13);
+            }
+
+            // Y-Grid (0 ~ 120 mL)
+            for (let v = 0; v <= 120; v += 20) {
+                const stepY = graphOffset.top + innerH - (v / 120) * innerH;
+                graphCtx.beginPath();
+                graphCtx.moveTo(graphOffset.left, stepY);
+                graphCtx.lineTo(graphOffset.left + innerW, stepY);
+                graphCtx.stroke();
+
+                graphCtx.fillStyle = '#64748b';
+                graphCtx.font = '9px Inter';
+                graphCtx.textAlign = 'right';
+                graphCtx.fillText(`${v}`, graphOffset.left - 6, stepY + 3.5);
+            }
+
+            // Solid Axes
+            graphCtx.strokeStyle = '#475569';
+            graphCtx.lineWidth = 1.5;
+            graphCtx.beginPath();
+            graphCtx.moveTo(graphOffset.left, graphOffset.top);
+            graphCtx.lineTo(graphOffset.left, graphOffset.top + innerH);
+            graphCtx.lineTo(graphOffset.left + innerW, graphOffset.top + innerH);
+            graphCtx.stroke();
+
+            // Theoretical curve
+            graphCtx.strokeStyle = 'rgba(79, 70, 229, 0.45)';
+            graphCtx.lineWidth = 2;
+            graphCtx.setLineDash([4, 3]);
+            graphCtx.beginPath();
+            for (let xStep = 0; xStep <= 100; xStep++) {
+                const plotP = 1.0 + (xStep / 100) * 5.0;
+                const plotV = PV_CONSTANT / plotP;
+                const drawX = graphOffset.left + (plotP / 6.0) * innerW;
+                const drawY = graphOffset.top + innerH - (plotV / 120) * innerH;
+
+                if (xStep === 0) graphCtx.moveTo(drawX, drawY);
+                else graphCtx.lineTo(drawX, drawY);
+            }
+            graphCtx.stroke();
+            graphCtx.setLineDash([]); // clear
+
+            // Student logged nodes
+            activeStudent.logs.forEach(entry => {
+                const nodeX = graphOffset.left + (entry.p / 6.0) * innerW;
+                const nodeY = graphOffset.top + innerH - (entry.v / 120) * innerH;
+
+                graphCtx.beginPath();
+                graphCtx.arc(nodeX, nodeY, 6, 0, Math.PI * 2);
+                graphCtx.fillStyle = '#10b981';
+                graphCtx.shadowColor = 'rgba(16, 185, 129, 0.7)';
+                graphCtx.shadowBlur = 4;
+                graphCtx.fill();
+
+                graphCtx.beginPath();
+                graphCtx.arc(nodeX, nodeY, 2.5, 0, Math.PI * 2);
+                graphCtx.fillStyle = '#ffffff';
+                graphCtx.fill();
+                graphCtx.shadowBlur = 0;
+            });
+
+            // Pulsing target dot
+            const activeX = graphOffset.left + (currentPressure / 6.0) * innerW;
+            const activeY = graphOffset.top + innerH - (currentVolume / 120) * innerH;
+
+            graphCtx.beginPath();
+            graphCtx.arc(activeX, activeY, 8, 0, Math.PI * 2);
+            graphCtx.fillStyle = '#f59e0b';
+            graphCtx.shadowColor = 'rgba(245, 158, 11, 0.8)';
+            graphCtx.shadowBlur = 8;
+            graphCtx.fill();
+            graphCtx.lineWidth = 1.5;
+            graphCtx.strokeStyle = '#ffffff';
+            graphCtx.stroke();
+            graphCtx.shadowBlur = 0;
+        }
+
+        // Teacher aggregate chart setup
+        const classGraphCanvas = document.getElementById('classGraphCanvas');
+        const classGraphCtx = classGraphCanvas.getContext('2d');
+        const cOffset = { top: 15, right: 15, bottom: 35, left: 45 };
+        const cgWidth = classGraphCanvas.width - cOffset.left - cOffset.right;
+        const cgHeight = classGraphCanvas.height - cOffset.top - cOffset.bottom;
+
+        function renderClassGraph() {
+            classGraphCtx.clearRect(0, 0, classGraphCanvas.width, classGraphCanvas.height);
+            
+            // Grid background
+            classGraphCtx.strokeStyle = '#f1f5f9';
+            classGraphCtx.lineWidth = 1;
+
+            // X scale (0.0 ~ 6.0 atm)
+            for (let p = 0.0; p <= 6.0; p += 1.0) {
+                const cx = cOffset.left + (p / 6.0) * cgWidth;
+                classGraphCtx.beginPath();
+                classGraphCtx.moveTo(cx, cOffset.top);
+                classGraphCtx.lineTo(cx, cOffset.top + cgHeight);
+                classGraphCtx.stroke();
+
+                classGraphCtx.fillStyle = '#94a3b8';
+                classGraphCtx.font = '9px Inter';
+                classGraphCtx.textAlign = 'center';
+                classGraphCtx.fillText(`${p.toFixed(1)} atm`, cx, cOffset.top + cgHeight + 13);
+            }
+
+            // Y scale (0 ~ 120 mL)
+            for (let v = 0; v <= 120; v += 20) {
+                const cy = cOffset.top + cgHeight - (v / 120) * cgHeight;
+                classGraphCtx.beginPath();
+                classGraphCtx.moveTo(cOffset.left, cy);
+                classGraphCtx.lineTo(cOffset.left + cgWidth, cy);
+                classGraphCtx.stroke();
+
+                classGraphCtx.fillStyle = '#94a3b8';
+                classGraphCtx.font = '9px Inter';
+                classGraphCtx.textAlign = 'right';
+                classGraphCtx.fillText(`${v} mL`, classOffset.left - 6, cy + 3.5);
+            }
+
+            // Ideal Curve Line
+            classGraphCtx.strokeStyle = 'rgba(99, 102, 241, 0.35)';
+            classGraphCtx.lineWidth = 3;
+            classGraphCtx.beginPath();
+            for (let xStep = 0; xStep <= 100; xStep++) {
+                const plotP = 1.0 + (xStep / 100) * 5.0;
+                const plotV = PV_CONSTANT / plotP;
+                const drawX = cOffset.left + (plotP / 6.0) * cgWidth;
+                const drawY = cOffset.top + cgHeight - (plotV / 120) * cgHeight;
+
+                if (xStep === 0) classGraphCtx.moveTo(drawX, drawY);
+                else classGraphCtx.lineTo(drawX, drawY);
+            }
+            classGraphCtx.stroke();
+
+            // Overlay ALL students' gathered logs (Classroom Database)
+            classroomDatabase.forEach(student => {
+                student.logs.forEach(log => {
+                    const lX = cOffset.left + (log.p / 6.0) * cgWidth;
+                    const lY = cOffset.top + cgHeight - (log.v / 120) * cgHeight;
+
+                    classGraphCtx.beginPath();
+                    classGraphCtx.arc(lX, lY, 6, 0, Math.PI * 2);
+                    // Differentiate active student node from classmate nodes
+                    if (student.id === activeStudent.id) {
+                        classGraphCtx.fillStyle = '#ec4899'; // Hot pink for active user
+                        classGraphCtx.shadowColor = 'rgba(236, 72, 153, 0.5)';
+                    } else {
+                        classGraphCtx.fillStyle = '#6366f1'; // Indigo for classmates
+                        classGraphCtx.shadowColor = 'rgba(99, 102, 241, 0.4)';
+                    }
+                    classGraphCtx.shadowBlur = 4;
+                    classGraphCtx.fill();
+                    classGraphCtx.shadowBlur = 0;
+                });
+            });
+        }
+
+
+        // Switch between Student/Teacher View
+        window.switchMode = function(mode) {
+            if (mode === 'teacher') {
+                // Open teacher authentication password modal
+                openPasswordModal();
+                return;
+            }
+            executeSwitchMode('student');
+        };
+
+        window.openPasswordModal = function() {
+            document.getElementById('teacherPasswordInput').value = '';
+            document.getElementById('passwordError').classList.add('hidden');
+            
+            const modal = document.getElementById('passwordModal');
+            const container = document.getElementById('pwdModalContainer');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                container.classList.remove('scale-95');
+                container.classList.add('scale-100');
+                document.getElementById('teacherPasswordInput').focus();
+            }, 50);
+        };
+
+        window.closePasswordModal = function() {
+            const container = document.getElementById('pwdModalContainer');
+            container.classList.remove('scale-100');
+            container.classList.add('scale-95');
+            setTimeout(() => {
+                document.getElementById('passwordModal').classList.add('hidden');
+            }, 150);
+        };
+
+        window.submitTeacherPassword = function() {
+            const entered = document.getElementById('teacherPasswordInput').value;
+            const correctPassword = '0511'; // 교사용 실시간 비밀번호 설정
+            
+            if (entered === correctPassword) {
+                closePasswordModal();
+                executeSwitchMode('teacher');
+                triggerToastNotification("성공적으로 교사용 권한 인증이 통과되었습니다.");
+            } else {
+                playTone(180, 'sawtooth', 0.15, 0.05);
+                const errorText = document.getElementById('passwordError');
+                errorText.classList.remove('hidden');
+                document.getElementById('teacherPasswordInput').select();
+            }
+        };
+
+        function executeSwitchMode(mode) {
+            currentMode = mode;
+            playTone(450, 'sine', 0.1, 0.05);
+
+            const sBtn = document.getElementById('btnStudentMode');
+            const tBtn = document.getElementById('btnTeacherMode');
+            const sView = document.getElementById('viewStudent');
+            const tView = document.getElementById('viewTeacher');
+
+            if (mode === 'student') {
+                sBtn.className = "px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300 bg-indigo-600 text-white shadow-md";
+                tBtn.className = "px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300 text-slate-400 hover:text-white";
+                sView.classList.remove('hidden');
+                tView.classList.add('hidden');
+            } else {
+                tBtn.className = "px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300 bg-indigo-600 text-white shadow-md";
+                sBtn.className = "px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all duration-300 text-slate-400 hover:text-white";
+                tView.classList.remove('hidden');
+                sView.classList.add('hidden');
+                
+                // Refresh teacher metrics and charts
+                syncTeacherDashboard();
+            }
+        }
+
+        // Custom Modal UI system instead of window.alert()
+        function showCustomModal(title, text, icon = '📢') {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalContent').innerText = text;
+            document.getElementById('modalIcon').innerText = icon;
+            
+            const modal = document.getElementById('customModal');
+            const container = document.getElementById('modalContainer');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                container.classList.remove('scale-95');
+                container.classList.add('scale-100');
+            }, 50);
+        }
+
+        window.closeCustomModal = function() {
+            const container = document.getElementById('modalContainer');
+            container.classList.remove('scale-100');
+            container.classList.add('scale-95');
+            setTimeout(() => {
+                document.getElementById('customModal').classList.add('hidden');
+            }, 150);
+        };
+
+        window.triggerClassroomAlert = function(msg) {
+            playTone(500, 'sine', 0.12, 0.06);
+            showCustomModal("학급 전체 미션 알림", msg, "🔔");
+        };
+
+        // Real-time student profile sync & Lock resolution trigger
+        window.syncStudentProfile = function() {
+            const idVal = document.getElementById('studentIdInput').value.trim();
+            const nameVal = document.getElementById('studentNameInput').value.trim();
+
+            activeStudent.id = idVal;
+            activeStudent.name = nameVal;
+
+            upsertActiveStudentInDB();
+            checkLockStatus(); // Check lock after any character update
+        };
+
+        function checkLockStatus() {
+            const hasId = activeStudent.id.length > 0;
+            const hasName = activeStudent.name.length > 0;
+
+            const controlsLock = document.getElementById('controlsLockOverlay');
+            const quizLock = document.getElementById('quizLockOverlay');
+
+            const pSlider = document.getElementById('pressureSlider');
+            const btnDec = document.getElementById('btnDecreaseP');
+            const btnInc = document.getElementById('btnIncreaseP');
+            const btnRec = document.getElementById('btnRecordData');
+
+            if (hasId && hasName) {
+                // Unlock
+                if (!controlsLock.classList.contains('hidden')) {
+                    controlsLock.classList.add('hidden');
+                    quizLock.classList.add('hidden');
+                    pSlider.removeAttribute('disabled');
+                    btnDec.removeAttribute('disabled');
+                    btnInc.removeAttribute('disabled');
+                    btnRec.removeAttribute('disabled');
+                    playTone(650, 'sine', 0.15, 0.05); // Friendly unlock chime
+                }
+            } else {
+                // Lock
+                controlsLock.classList.remove('hidden');
+                quizLock.classList.remove('hidden');
+                pSlider.setAttribute('disabled', 'true');
+                btnDec.setAttribute('disabled', 'true');
+                btnInc.setAttribute('disabled', 'true');
+                btnRec.setAttribute('disabled', 'true');
+            }
+        }
+
+        function upsertActiveStudentInDB() {
+            // Find active student slot
+            const targetIdx = classroomDatabase.findIndex(st => st.id === activeStudent.id || st.name.includes('(나)'));
+            if (targetIdx !== -1) {
+                // sync matching metadata
+                classroomDatabase[targetIdx].id = activeStudent.id || '20206';
+                classroomDatabase[targetIdx].name = activeStudent.name ? `${activeStudent.name}(나)` : '김도훈(나)';
+                classroomDatabase[targetIdx].logs = activeStudent.logs;
+                classroomDatabase[targetIdx].quizAnswers = activeStudent.quizAnswers;
+            } else {
+                classroomDatabase.push({
+                    id: activeStudent.id || '20206',
+                    name: activeStudent.name ? `${activeStudent.name}(나)` : '김도훈(나)',
+                    logs: activeStudent.logs,
+                    quizAnswers: activeStudent.quizAnswers
+                });
+            }
+        }
+
+        // Sync Teacher Dashboard elements
+        function syncTeacherDashboard() {
+            const totalStudents = classroomDatabase.length;
+            document.getElementById('statStudentCount').innerText = `${totalStudents}명`;
+
+            const totalLogs = classroomDatabase.reduce((sum, current) => sum + current.logs.length, 0);
+            const avgLogs = totalStudents > 0 ? (totalLogs / totalStudents).toFixed(1) : '0.0';
+            document.getElementById('statAvgLogs').innerText = `${avgLogs}개`;
+
+            let fullyAttemptedQuizzes = 0;
+            classroomDatabase.forEach(st => {
+                const answersSubmitted = st.quizAnswers.filter(ans => ans !== null).length;
+                if (answersSubmitted === 3) {
+                    fullyAttemptedQuizzes++;
+                }
+            });
+            const quizProgressPct = totalStudents > 0 ? Math.round((fullyAttemptedQuizzes / totalStudents) * 100) : 0;
+            document.getElementById('statQuizSuccess').innerText = `${quizProgressPct}%`;
+
+            const tBody = document.getElementById('teacherTableBody');
+            tBody.innerHTML = classroomDatabase.map(st => {
+                const logsCount = st.logs.length;
+                const lastLog = logsCount > 0 ? st.logs[logsCount - 1] : null;
+                const lastValText = lastLog ? `${lastLog.p.toFixed(1)} atm / ${lastLog.v.toFixed(1)} mL` : '기록 없음';
+                
+                const quiz1Html = getQuizCellBadge(st.quizAnswers[0]);
+                const quiz2Html = getQuizCellBadge(st.quizAnswers[1]);
+                const quiz3Html = getQuizCellBadge(st.quizAnswers[2]);
+
+                const isUser = st.id === activeStudent.id || st.name.endsWith('(나)');
+                const stateText = isUser ? 
+                    '<span class="bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-bold">나(접속중)</span>' : 
+                    '<span class="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">탐구중</span>';
+
+                return `
+                    <tr class="${isUser ? 'bg-pink-50/40' : 'bg-white'} border-b hover:bg-slate-50 transition-colors">
+                        <td class="px-4 py-3 font-mono font-bold">${st.id || '미지정'}</td>
+                        <td class="px-4 py-3 font-bold text-slate-800">${st.name || '무명 학생'}</td>
+                        <td class="px-4 py-3 text-center font-bold">${logsCount}개</td>
+                        <td class="px-4 py-3 text-center font-mono text-slate-500">${lastValText}</td>
+                        <td class="px-4 py-3 text-center">${quiz1Html}</td>
+                        <td class="px-4 py-3 text-center">${quiz2Html}</td>
+                        <td class="px-4 py-3 text-center">${quiz3Html}</td>
+                        <td class="px-4 py-3 text-center">${stateText}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            renderClassGraph();
+        }
+
+        function getQuizCellBadge(val) {
+            if (val === null) return '<span class="text-slate-300">-</span>';
+            return val ? 
+                '<span class="text-emerald-500 text-xs font-black bg-emerald-50 px-2 py-1 rounded-md">O</span>' : 
+                '<span class="text-rose-500 text-xs font-black bg-rose-50 px-2 py-1 rounded-md">X</span>';
+        }
+
+        // CSV Export function for student data tracking
+        window.downloadCSV = function() {
+            // Define CSV Header
+            const headers = ['학번', '이름', '기록 수량', '최근 실험 수치', '퀴즈 1', '퀴즈 2', '퀴즈 3'];
+            
+            // Map table values
+            const rows = classroomDatabase.map(st => {
+                const logsCount = st.logs.length;
+                const lastLog = logsCount > 0 ? st.logs[logsCount - 1] : null;
+                const lastValText = lastLog ? `${lastLog.p.toFixed(1)} atm / ${lastLog.v.toFixed(1)} mL` : '기록 없음';
+                
+                const q1 = st.quizAnswers[0] === null ? '미응시' : (st.quizAnswers[0] ? 'O' : 'X');
+                const q2 = st.quizAnswers[1] === null ? '미응시' : (st.quizAnswers[1] ? 'O' : 'X');
+                const q3 = st.quizAnswers[2] === null ? '미응시' : (st.quizAnswers[2] ? 'O' : 'X');
+
+                // Enclose fields in double quotes to prevent separation issues with commas or special characters
+                return [
+                    `"${st.id || ''}"`,
+                    `"${(st.name || '').replace('(나)', '')}"`,
+                    `"${logsCount}"`,
+                    `"${lastValText}"`,
+                    `"${q1}"`,
+                    `"${q2}"`,
+                    `"${q3}"`
+                ].join(',');
+            });
+
+            // Prepend UTF-8 BOM (\uFEFF) to make Excel recognize Korean characters instantly
+            const csvContent = "\uFEFF" + [headers.join(','), ...rows].join('\n');
+            
+            // Create a Blob and trigger virtual download element
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            
+            const today = new Date().toISOString().slice(0, 10);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `보일의법칙_실습기록_${today}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            playTone(650, 'sine', 0.12, 0.05);
+            triggerToastNotification("전체 학생의 탐구 실습 정보가 CSV로 다운로드되었습니다.");
+        };
+
+        // Mock interaction to simulate other students sending live data in real-time
+        window.injectMockStudentAction = function() {
+            const nonUserClassmates = classroomDatabase.filter(st => st.id !== activeStudent.id && !st.name.endsWith('(나)'));
+            if (nonUserClassmates.length === 0) return;
+
+            const randomStudent = nonUserClassmates[Math.floor(Math.random() * nonUserClassmates.length)];
+            const randomP = parseFloat((1.0 + Math.random() * 5.0).toFixed(1));
+            const calculatedV = PV_CONSTANT / randomP;
+
+            randomStudent.logs.push({ p: randomP, v: calculatedV });
+            
+            const unattemptedIdx = randomStudent.quizAnswers.findIndex(ans => ans === null);
+            if (unattemptedIdx !== -1) {
+                randomStudent.quizAnswers[unattemptedIdx] = Math.random() > 0.35; 
+            }
+
+            playTone(700, 'sine', 0.05, 0.01);
+            syncTeacherDashboard();
+            triggerToastNotification(`동급생 ${randomStudent.name} 학생의 실험 데이터가 실시간으로 수집되었습니다.`);
+        };
+
+
+        const pSlider = document.getElementById('pressureSlider');
+        const sliderValText = document.getElementById('sliderValueText');
+        const boardP = document.getElementById('boardP');
+        const boardV = document.getElementById('boardV');
+        const boardPV = document.getElementById('boardPV');
+        const overP = document.getElementById('overlayPressure');
+        const overV = document.getElementById('overlayVolume');
+        const btnDec = document.getElementById('btnDecreaseP');
+        const btnInc = document.getElementById('btnIncreaseP');
+        const btnRecord = document.getElementById('btnRecordData');
+        const btnClear = document.getElementById('btnClearJournal');
+        const journalTableBody = document.getElementById('journalTableBody');
+        const toast = document.getElementById('dynamicToast');
+        const toastMsg = document.getElementById('toastMsg');
+
+        function syncState() {
+            currentVolume = PV_CONSTANT / currentPressure;
+
+            sliderValText.innerText = `${currentPressure.toFixed(1)} atm`;
+            boardP.innerHTML = `${currentPressure.toFixed(1)} <span class="text-xs font-normal text-indigo-500">atm</span>`;
+            boardV.innerHTML = `${currentVolume.toFixed(1)} <span class="text-xs font-normal text-emerald-500">mL</span>`;
+            boardPV.innerHTML = `${(currentPressure * currentVolume).toFixed(1)} <span class="text-[10px] font-normal text-amber-500">atm·mL</span>`;
+            
+            overP.innerText = currentPressure.toFixed(1);
+            overV.innerText = currentVolume.toFixed(1);
+
+            pSlider.value = currentPressure;
+        }
+
+        function triggerToastNotification(text, isError = false) {
+            toastMsg.innerText = text;
+            if (isError) {
+                toast.className = "mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2 shadow-sm transition-all";
+            } else {
+                toast.className = "mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2 shadow-sm transition-all";
+            }
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3500);
+        }
+
+        function handleRecordData() {
+            const key = currentPressure.toFixed(1);
+            const isDuplicate = activeStudent.logs.some(log => log.p.toFixed(1) === key);
+
+            if (isDuplicate) {
+                playTone(200, 'sawtooth', 0.12, 0.05);
+                triggerToastNotification(`이미 압력 ${key} atm 조건에서 수집된 데이터 일지가 존재합니다.`, true);
+                return;
+            }
+
+            const newLog = {
+                p: currentPressure,
+                v: currentVolume
+            };
+
+            activeStudent.logs.push(newLog);
+            upsertActiveStudentInDB();
+
+            playTone(550, 'sine', 0.14, 0.05);
+            triggerToastNotification(`정상 기록 완료: ${currentPressure.toFixed(1)} atm, ${currentVolume.toFixed(1)} mL 측정값을 내 실험 일지에 저장했습니다.`);
+            
+            refreshJournalTable();
+            renderGraph();
+        }
+
+        function refreshJournalTable() {
+            if (activeStudent.logs.length === 0) {
+                journalTableBody.innerHTML = `
+                    <tr id="emptyRow" class="bg-white border-b">
+                        <td colspan="5" class="px-5 py-8 text-center text-slate-400">
+                            아직 수집된 실험 데이터가 없습니다.<br>
+                            왼쪽 <span class="text-indigo-600 font-bold">"측정 데이터 기록"</span> 버튼으로 수치를 쌓아 올려 보세요!
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            journalTableBody.innerHTML = activeStudent.logs.map((log, index) => `
+                <tr class="bg-white border-b hover:bg-slate-50 transition-colors">
+                    <td class="px-5 py-3 text-center font-bold text-slate-600">${index + 1}</td>
+                    <td class="px-5 py-3 font-mono font-semibold">${log.p.toFixed(1)} atm</td>
+                    <td class="px-5 py-3 font-mono font-semibold">${log.v.toFixed(1)} mL</td>
+                    <td class="px-5 py-3 font-mono font-bold text-indigo-600">${(log.p * log.v).toFixed(1)}</td>
+                    <td class="px-5 py-3 text-center">
+                        <button onclick="removeJournalEntry(${index})" class="text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-2 py-1 rounded-lg transition-colors font-bold">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        window.removeJournalEntry = function(index) {
+            activeStudent.logs.splice(index, 1);
+            upsertActiveStudentInDB();
+            playTone(300, 'triangle', 0.08, 0.03);
+            refreshJournalTable();
+            renderGraph();
+        };
+
+        pSlider.addEventListener('input', (e) => {
+            currentPressure = parseFloat(e.target.value);
+            syncState();
+            renderGraph();
+        });
+
+        btnInc.addEventListener('click', () => {
+            if (currentPressure < 6.0) {
+                currentPressure = Math.min(6.0, parseFloat((currentPressure + 0.5).toFixed(1)));
+                playTone(480, 'sine', 0.06, 0.04);
+                syncState();
+                renderGraph();
+            } else {
+                playTone(180, 'triangle', 0.12, 0.05);
+            }
+        });
+
+        btnDec.addEventListener('click', () => {
+            if (currentPressure > 1.0) {
+                currentPressure = Math.max(1.0, parseFloat((currentPressure - 0.5).toFixed(1)));
+                playTone(420, 'sine', 0.06, 0.04);
+                syncState();
+                renderGraph();
+            } else {
+                playTone(180, 'triangle', 0.12, 0.05);
+            }
+        });
+
+        btnRecord.addEventListener('click', handleRecordData);
+
+        btnClear.addEventListener('click', () => {
+            if (activeStudent.logs.length > 0) {
+                activeStudent.logs = [];
+                upsertActiveStudentInDB();
+                playTone(150, 'sawtooth', 0.2, 0.04);
+                refreshJournalTable();
+                renderGraph();
+                triggerToastNotification("데이터 일지가 정상적으로 초기화되었습니다.");
+            }
+        });
+
+        // Classroom Assessment Engine
+        const quizList = [
+            {
+                q: "Q1. 온도가 일정할 때, 기체의 압력을 3배 증가시키면 내부의 가상 부피(V)는 원래의 몇 배가 될까요?",
+                answers: ["① 3배로 늘어난다", "② 1/3배로 압축된다", "③ 변함없이 일정하다", "④ 완전히 소멸하여 0이 된다"],
+                correct: 2,
+                desc: "보일의 법칙에 의해 기체 압력과 부피는 반비례 관계입니다. 압력이 3배 늘어나면 부피는 1/3배로 압축됩니다."
+            },
+            {
+                q: "Q2. 실험 데이터 기록장에 적힌 '압력(P) × 부피(V)'의 값은 압력을 조정할 때 어떻게 변하는가요?",
+                answers: ["① 압력이 높아지면 값도 늘어난다", "② 부피가 작아지면 값이 줄어든다", "③ 압력이 어떻게 변하든 일정한 상수를 유지한다", "④ 가늠할 수 없이 매번 랜덤이다"],
+                correct: 3,
+                desc: "PV = k (일정) 공식에 의해 기체 압력과 부피의 곱은 항상 온도가 일정한 상태에서 일정한 수치(상수)를 유지합니다."
+            },
+            {
+                q: "Q3. 피스톤을 눌러 부피를 강하게 감소시킬 때, 기체 분자의 미시적인 운동에 대한 올바른 설명은?",
+                answers: ["① 분자 알갱이의 질량이 줄어든다", "② 분자의 운동 공간이 좁아져 벽 충돌 빈도가 올라간다", "③ 분자 하나의 지름이 작아진다", "④ 분자의 온도 속도가 완벽히 정지한다"],
+                correct: 2,
+                desc: "압력이 올라가는 본질적 원인은 분자 알갱이 개당 충돌 면적이 밀집되면서 내부 실린더 벽을 연속 타격하는 빈도가 높아지기 때문입니다."
+            }
+        ];
+
+        let activeQuizIndex = 0;
+
+        function updateQuizIndicator() {
+            for (let i = 1; i <= 3; i++) {
+                const dot = document.getElementById(`qDot${i}`);
+                const state = activeStudent.quizAnswers[i - 1];
+                if (state === null) {
+                    dot.className = "w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 text-[10px]";
+                } else {
+                    // 학생 화면에서는 정답/오답(초록/빨강) 대신 제출 완료를 뜻하는 중립적인 인디고 색상으로 통일합니다.
+                    dot.className = "w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center border border-indigo-700 text-white font-bold text-[10px]";
+                }
+            }
+        }
+
+        function loadQuiz(index) {
+            updateQuizIndicator();
+            if (index >= quizList.length) {
+                document.getElementById('quizContainer').innerHTML = `
+                    <div class="text-center py-6">
+                        <span class="text-4xl">🏆</span>
+                        <h4 class="text-base font-black text-indigo-700 mt-2">자가 발전 퀴즈 완료!</h4>
+                        <p class="text-xs text-slate-600 mt-1">보일의 법칙의 원리(반비례 관계, 일정 상수, 입자 충돌 빈도)를 완벽하게 정복했습니다.</p>
+                        <button onclick="restartQuiz()" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all">
+                            처음부터 다시 풀기
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const currentQuiz = quizList[index];
+            document.getElementById('quizQuestion').innerText = currentQuiz.q;
+            
+            const answersHtml = currentQuiz.answers.map((ans, aIdx) => `
+                <button onclick="checkAnswer(${index}, ${aIdx + 1})" class="w-full py-3 px-4 bg-white hover:bg-indigo-50 border-slate-200 hover:border-indigo-400 text-slate-700 text-xs font-semibold rounded-xl border text-left transition-all hover:translate-x-1 flex justify-between items-center">
+                    <span>${ans}</span>
+                    <i class="fa-solid fa-chevron-right text-slate-300"></i>
+                </button>
+            `).join('');
+            
+            document.getElementById('quizAnswers').innerHTML = answersHtml;
+            document.getElementById('quizResultPanel').className = "hidden mt-4 p-4 rounded-xl font-bold text-center";
+        }
+
+        window.checkAnswer = function(qIdx, selected) {
+            const currentQuiz = quizList[qIdx];
+            const resultPanel = document.getElementById('quizResultPanel');
+            const isCorrect = (selected === currentQuiz.correct);
+            
+            activeStudent.quizAnswers[qIdx] = isCorrect;
+            upsertActiveStudentInDB();
+            updateQuizIndicator();
+
+            // 학생들에게 정정 여부를 직접 노출하지 않고 제출 완료 메시지만 보여주어 오개념 극복과 건전한 참여를 유도합니다.
+            playTone(600, 'sine', 0.15, 0.04);
+            resultPanel.className = "mt-4 p-4 rounded-xl font-bold text-center bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs flex flex-col gap-2";
+            resultPanel.innerHTML = `
+                <div>📝 답안이 성공적으로 제출되었습니다!</div>
+                <div class="text-[10px] font-normal text-slate-500">제출된 정오답 여부는 교사용 대시보드에 실시간으로 반영되어 기록됩니다.</div>
+                <button onclick="nextQuiz()" class="mt-2 self-center px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-all shadow">
+                    다음 문제 풀기
+                </button>
+            `;
+            resultPanel.classList.remove('hidden');
+        };
+
+        window.nextQuiz = function() {
+            activeQuizIndex++;
+            loadQuiz(activeQuizIndex);
+        };
+
+        window.restartQuiz = function() {
+            activeQuizIndex = 0;
+            activeStudent.quizAnswers = [null, null, null];
+            upsertActiveStudentInDB();
+            document.getElementById('quizContainer').innerHTML = `
+                <p class="font-bold text-sm text-slate-800 mb-3" id="quizQuestion"></p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="quizAnswers"></div>
+                <div id="quizResultPanel" class="hidden mt-4 p-4 rounded-xl font-bold text-center"></div>
+            `;
+            loadQuiz(0);
+        };
+
+        function animationFrameRunner() {
+            renderCylinder();
+            renderGraph();
+            requestAnimationFrame(animationFrameRunner);
+        }
+
+        window.onload = function() {
+            // Setup blank active profile on startup to lock controls until input is entered
+            document.getElementById('studentIdInput').value = activeStudent.id;
+            document.getElementById('studentNameInput').value = activeStudent.name;
+            
+            // Add Enter key listener for password input
+            document.getElementById('teacherPasswordInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    submitTeacherPassword();
+                }
+            });
+
+            upsertActiveStudentInDB();
+            syncState();
+            refreshJournalTable();
+            loadQuiz(0);
+            checkLockStatus(); // Start with locked simulator panels
+            
+            animationFrameRunner();
+        };
+    </script>
+</body>
+</html>
